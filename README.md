@@ -26,7 +26,7 @@ Built for phones. Open `index.html` in a browser, or turn on GitHub Pages (Setti
 | 8 | Kayaks + synthesizers + cannons + paint huskies |
 | 9 | Lights out: dolls, spiders and zombies |
 | 10–12 | Kayaks plus a mix of everything; level 12 is lights out |
-| **13** | **FINAL BOSS: the Fire Rock Guy.** He shoots fireballs that leave fire on the ground. Hit him with the ball (water balls do double damage, fire balls do nothing) or score past him. Beat him to win! |
+| **13** | **FINAL BOSS: the Fire Rock Guy.** He shoots fireballs that leave fire on the ground. Hit him with the ball (water balls do double damage, fire balls do nothing) or score past him. Beat him to reach the **true ending**: grab the golden gem and escape before the bad guys catch you, then roll the credits. |
 | 14+ | Keep playing: the mix continues, every 3rd level lights out |
 
 Grab a glowing orb to become a **Fire** ball (burns poop and fly traps, faster shots), a **Water** ball (drinks water shots, washes off paint, swims the river), or a **Fire & Water** ball (all of that, plus a bonus point per goal). Sometimes a level starts you with one.
