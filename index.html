@@ -70,6 +70,12 @@ h1 span { color: var(--gold); display: block; }
 #crawl-text .ep { font-family: var(--display); font-weight: 400; text-align: center; letter-spacing: 0.14em; font-size: 0.85em; margin-bottom: 0.4em; }
 #crawl-text h2 { font-family: var(--display); font-weight: 400; text-align: center; font-size: 1.45em; line-height: 1.05; margin: 0 0 1em; }
 #crawl-fade { position: absolute; top: 0; left: 0; right: 0; height: 34%; background: linear-gradient(#000 25%, rgba(0, 0, 0, 0)); pointer-events: none; }
+#crawl-start { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: none; border: 0; color: var(--gold); cursor: pointer; padding-inline: 20px; }
+#crawl-start .cs-kicker { font-family: var(--display); font-size: 0.8rem; letter-spacing: 0.2em; color: var(--water); }
+#crawl-start .cs-go { font-family: var(--display); font-size: 1.6rem; border: 2px solid var(--gold); border-radius: 14px; padding: 14px 26px 12px; animation: cs-pulse 1.6s ease-in-out infinite; }
+#crawl-start .cs-note { font-size: 0.95rem; font-weight: 600; color: #b9c3bd; }
+@keyframes cs-pulse { 50% { box-shadow: 0 0 22px rgba(255, 210, 63, 0.55); } }
+@media (prefers-reduced-motion: reduce) { #crawl-start .cs-go { animation: none; } }
 #skip { position: absolute; right: 12px; bottom: 14px; z-index: 2; font-family: var(--display); font-size: 1rem; padding: 10px 16px 8px; border-radius: 10px; border: 2px solid var(--gold); background: rgba(0, 0, 0, 0.6); color: var(--gold); cursor: pointer; }
 #skip:focus-visible, .linkbtn:focus-visible { outline: 3px solid var(--water); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { #crawl-logo.go { animation-duration: 0.01s; } }
@@ -125,6 +131,11 @@ h1 span { color: var(--gold); display: block; }
       </div>
     </div>
     <div id="crawl-fade"></div>
+    <button id="crawl-start" type="button" hidden>
+      <span class="cs-kicker">AN EVERETT GAME</span>
+      <span class="cs-go">▶ TAP TO START</span>
+      <span class="cs-note">Turn your sound up!</span>
+    </button>
     <button id="skip" type="button">SKIP ▸</button>
   </div>
 </div>
@@ -1519,8 +1530,120 @@ function drawStars() {
   }
   x.globalAlpha = 1;
 }
+/* original space-opera fanfare for the crawl (Bb major, 108 bpm) */
+let orch = null;
+function makeIR(sec) {
+  const len = Math.round(ac.sampleRate * sec), buf = ac.createBuffer(2, len, ac.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = buf.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+  return buf;
+}
+function oBrass(t, m, dur, vel, bus) {
+  const f = mtof(m), g = ac.createGain(), lp = ac.createBiquadFilter();
+  lp.type = 'lowpass'; lp.Q.value = 1.2;
+  lp.frequency.setValueAtTime(300, t); lp.frequency.linearRampToValueAtTime(900 + 2300 * vel, t + 0.06); lp.frequency.exponentialRampToValueAtTime(600 + 1100 * vel, t + 0.4);
+  const pk = 0.11 * vel;
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(pk, t + 0.04);
+  g.gain.setValueAtTime(pk * 0.85, t + Math.max(0.06, dur - 0.08)); g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.14);
+  lp.connect(g); g.connect(bus);
+  [-7, 6].forEach(dt => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = dt; o.connect(lp); o.start(t); o.stop(t + dur + 0.2); });
+}
+function oStrings(t, m, dur, vel, bus) {
+  const f = mtof(m), g = ac.createGain(), lp = ac.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = 1700;
+  const pk = 0.045 * vel;
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(pk, t + 0.35);
+  g.gain.setValueAtTime(pk, t + Math.max(0.36, dur - 0.1)); g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.5);
+  lp.connect(g); g.connect(bus);
+  [-11, 0, 10].forEach(dt => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = dt; o.connect(lp); o.start(t); o.stop(t + dur + 0.6); });
+}
+function oTimp(t, m, vel, bus) {
+  const f = mtof(m), o = ac.createOscillator(), g = ac.createGain();
+  o.frequency.setValueAtTime(f * 1.08, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.08);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.7 * vel, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3);
+  o.connect(g); g.connect(bus); o.start(t); o.stop(t + 1.35);
+  noiseAt(t, 0.09, 'lowpass', 500, null, 0.35 * vel, bus);
+}
+function oCrash(t, vel, bus) { noiseAt(t, 1.5, 'highpass', 5000, null, 0.32 * vel, bus); noiseAt(t, 0.6, 'bandpass', 9000, null, 0.15 * vel, bus); }
+function buildScore(t0, bus) {
+  const B = 60 / 108, BAR = 4 * B, ev = [];
+  const at = (t, fn) => ev.push({ t, fn: () => fn(t) });
+  const CH = { Bb: [46, 58, 62, 65], Eb: [51, 58, 63, 67], Gm: [43, 58, 62, 67], F: [41, 57, 60, 65], Cm: [48, 55, 60, 63] };
+  const TIMP = { Bb: 46, Eb: 39, Gm: 43, F: 41, Cm: 48 };
+  const FAN_CH = ['Bb', 'Eb', 'Gm', 'F', 'Eb', 'F', 'Bb', 'Bb'];
+  const FAN_MEL = [
+    [[74, 1.5], [72, 0.5], [70, 1], [77, 1]], [[75, 2], [74, 1], [72, 1]], [[70, 1], [74, 1], [79, 1.5], [77, 0.5]], [[77, 4]],
+    [[79, 1.5], [77, 0.5], [75, 1], [74, 1]], [[72, 2], [69, 1], [72, 1]], [[70, 1], [74, 1], [77, 1], [81, 1]], [[82, 4]],
+  ];
+  const INT_CH = ['Gm', 'Eb', 'Bb', 'F', 'Gm', 'Eb', 'Cm', 'F'];
+  const INT_MEL = [[[74, 4]], [[75, 2], [70, 2]], [[74, 2], [77, 2]], [[72, 4]], [[70, 2], [74, 2]], [[75, 2], [79, 2]], [[75, 2], [72, 2]], [[72, 2], [69, 2]]];
+  const bigChord = (t, dur) => {
+    CH.Bb.concat([70, 74, 77]).forEach(m => oBrass(t, m, dur, 1, bus));
+    CH.Bb.forEach(m => oStrings(t, m + 12, dur, 1, bus));
+    oCrash(t, 1, bus); oTimp(t, 46, 1, bus);
+  };
+  // timpani roll swelling into the logo hit
+  const hit = t0 + 4.4;
+  for (let k = 0; k < 18; k++) at(hit - 1.1 + k * 0.06, t => oTimp(t, 46, 0.12 + k * 0.03, bus));
+  at(hit, t => bigChord(t, BAR * 0.95));
+  let t = hit + BAR;
+  for (let cyc = 0; cyc < 2; cyc++) {
+    FAN_CH.forEach((c, b) => {
+      const bt = t + b * BAR;
+      at(bt, tt => {
+        CH[c].forEach(m => { oStrings(tt, m + 12, BAR, 0.9, bus); oBrass(tt, m, B * 1.6, 0.6, bus); });
+        oTimp(tt, TIMP[c], 0.9, bus);
+        if (b === 0 || b === 4) oCrash(tt, 0.6, bus);
+      });
+      at(bt + 2 * B, tt => oTimp(tt, TIMP[c], 0.45, bus));
+      let o = 0;
+      FAN_MEL[b].forEach(([m, d]) => { at(bt + o * B, tt => { oBrass(tt, m, d * B * 0.92, 1, bus); oBrass(tt, m - 12, d * B * 0.92, 0.5, bus); }); o += d; });
+    });
+    t += 8 * BAR;
+    INT_CH.forEach((c, b) => {
+      const bt = t + b * BAR;
+      at(bt, tt => { CH[c].forEach(m => oStrings(tt, m + 12, BAR * 1.02, 0.85, bus)); oTimp(tt, TIMP[c], 0.3, bus); });
+      let o = 0;
+      INT_MEL[b].forEach(([m, d]) => { at(bt + o * B, tt => oBrass(tt, m - 12, d * B * 0.95, 0.5, bus)); o += d; });
+    });
+    t += 8 * BAR;
+  }
+  for (let k = 0; k < 14; k++) at(t - 0.85 + k * 0.06, tt => oTimp(tt, 46, 0.15 + k * 0.035, bus));
+  at(t, tt => bigChord(tt, BAR * 1.5));
+  return ev.sort((a, b) => a.t - b.t);
+}
+function orchPump() {
+  if (!orch) return;
+  const until = ac.currentTime + 0.35;
+  while (orch.i < orch.events.length && orch.events[orch.i].t < until) { orch.events[orch.i].fn(); orch.i++; }
+}
+function orchStart() {
+  if (!ac) return;
+  orchStop(true);
+  const bus = ac.createGain(); bus.gain.value = 0.7;
+  const dry = ac.createGain(); dry.gain.value = 0.8;
+  const wet = ac.createGain(); wet.gain.value = 0.45;
+  const verb = ac.createConvolver(); verb.buffer = makeIR(2.6);
+  bus.connect(dry); dry.connect(master); bus.connect(verb); verb.connect(wet); wet.connect(master);
+  orch = { bus, wet, dry, i: 0, events: buildScore(ac.currentTime + 0.05, bus) };
+  orch.timer = setInterval(orchPump, 40);
+  orchPump();
+}
+function orchStop(now) {
+  if (!orch) return;
+  const o = orch; orch = null; clearInterval(o.timer);
+  const t = ac.currentTime, fade = now ? 0.05 : 1.8;
+  o.bus.gain.cancelScheduledValues(t); o.bus.gain.setValueAtTime(o.bus.gain.value, t); o.bus.gain.linearRampToValueAtTime(0.0001, t + fade);
+  setTimeout(() => { try { o.bus.disconnect(); o.dry.disconnect(); o.wet.disconnect(); } catch (e) {} }, fade * 1000 + 2800);
+}
+const gateEl = document.getElementById('crawl-start');
+function showGate() {
+  crawlEl.hidden = false; gateEl.hidden = false;
+  drawStars();
+  gateEl.focus({ preventScroll: true });
+}
 function runCrawl() {
-  crawlEl.hidden = false;
+  crawlEl.hidden = false; gateEl.hidden = true;
+  initAudio(); orchStart();
   drawStars();
   const intro = document.getElementById('crawl-intro'), logo = document.getElementById('crawl-logo');
   intro.classList.remove('on'); logo.classList.remove('go'); void logo.offsetWidth;
@@ -1548,17 +1671,23 @@ function runCrawl() {
 function endCrawl() {
   cancelAnimationFrame(crawlRaf);
   if (crawlEl.hidden) return;
-  crawlEl.hidden = true;
+  initAudio(); orchStop(false);
+  crawlEl.hidden = true; gateEl.hidden = true;
   const play = document.getElementById('play');
   if (!document.getElementById('title').hidden) play.focus({ preventScroll: true });
 }
 document.getElementById('skip').addEventListener('click', endCrawl);
 document.getElementById('story').addEventListener('click', runCrawl);
-window.addEventListener('keydown', e => { if (!crawlEl.hidden && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); endCrawl(); } });
+gateEl.addEventListener('click', runCrawl);
+window.addEventListener('keydown', e => {
+  if (crawlEl.hidden) return;
+  if (!gateEl.hidden && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); runCrawl(); }
+  else if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); endCrawl(); }
+});
 
 function start(data) {
   data = data || {};
-  if (!reduceMotion && !(data.level > 1)) runCrawl();
+  if (!reduceMotion && !(data.level > 1)) showGate();
   if (data.muted) setMute(true);
   resize(); resetBall();
   document.getElementById('play').addEventListener('click', () => { initAudio(); newGame(data.level > 1 && data.lives > 0 ? data : null); data = {}; });
