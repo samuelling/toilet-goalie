@@ -50,6 +50,30 @@ h1 span { color: var(--gold); display: block; }
 .stats { font-size: 1.2rem; font-weight: 600; margin: 0; line-height: 1.4; font-variant-numeric: tabular-nums; }
 .stats strong { font-family: var(--display); font-weight: 400; color: var(--gold); font-size: 1.5rem; }
 .small { font-size: 0.9rem; opacity: 0.75; margin: 0; }
+.linkbtn { font-family: var(--body); font-weight: 800; font-size: 1rem; color: var(--water); background: none; border: 0; padding: 6px 10px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Story crawl */
+#crawl { position: absolute; inset: 0; z-index: 5; background: #000; overflow: hidden; perspective: 340px; perspective-origin: 50% 30%; }
+#stars { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: auto; }
+#crawl-intro { position: absolute; top: 38%; left: 0; right: 0; margin: 0; padding-inline: 28px; text-align: center; color: var(--water); font-weight: 600; font-size: 1.25rem; line-height: 1.45; opacity: 0; transition: opacity 0.7s; }
+#crawl-intro.on { opacity: 1; }
+#crawl-logo { position: absolute; top: 46%; left: 50%; display: flex; flex-direction: column; align-items: center; font-family: var(--display); font-size: clamp(2.6rem, 14vw, 4.2rem); line-height: 0.95; color: transparent; -webkit-text-stroke: 2px var(--gold); opacity: 0; transform: translate(-50%, -50%) scale(2.4); pointer-events: none; white-space: nowrap; }
+#crawl-logo.go { animation: logo-away 8s cubic-bezier(0.25, 0.6, 0.4, 1) forwards; }
+@keyframes logo-away {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(2.4); }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.04); }
+}
+#crawl-plane { position: absolute; left: 50%; bottom: 0; width: min(86%, 440px); height: 100%; transform: translateX(-50%) rotateX(26deg); transform-origin: 50% 100%; }
+#crawl-text { position: absolute; top: 0; left: 0; right: 0; color: var(--gold); font-weight: 800; font-size: clamp(1.15rem, 5.3vw, 1.5rem); line-height: 1.35; text-align: justify; hyphens: auto; will-change: transform; transform: translateY(200vh); }
+#crawl-text p { margin: 0 0 1.1em; }
+#crawl-text .ep { font-family: var(--display); font-weight: 400; text-align: center; letter-spacing: 0.14em; font-size: 0.85em; margin-bottom: 0.4em; }
+#crawl-text h2 { font-family: var(--display); font-weight: 400; text-align: center; font-size: 1.45em; line-height: 1.05; margin: 0 0 1em; }
+#crawl-fade { position: absolute; top: 0; left: 0; right: 0; height: 34%; background: linear-gradient(#000 25%, rgba(0, 0, 0, 0)); pointer-events: none; }
+#skip { position: absolute; right: 12px; bottom: 14px; z-index: 2; font-family: var(--display); font-size: 1rem; padding: 10px 16px 8px; border-radius: 10px; border: 2px solid var(--gold); background: rgba(0, 0, 0, 0.6); color: var(--gold); cursor: pointer; }
+#skip:focus-visible, .linkbtn:focus-visible { outline: 3px solid var(--water); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { #crawl-logo.go { animation-duration: 0.01s; } }
+
 #mute { position: absolute; top: 6px; right: 8px; width: 40px; height: 40px; border-radius: 10px; border: 0; background: rgba(255,255,255,0.1); color: var(--porcelain); display: grid; place-items: center; cursor: pointer; z-index: 2; }
 #mute svg { width: 22px; height: 22px; }
 </style>
@@ -75,6 +99,7 @@ h1 span { color: var(--gold); display: block; }
       <li><i class="dot d-dark"></i><span>Dark: hide under beds from the dolls. If a spider web gets you, you <b>start over at zero</b>!</span></li>
     </ul>
     <button class="btn" id="play" type="button">PLAY</button>
+    <button class="linkbtn" id="story" type="button">Watch the story</button>
   </div>
 
   <div class="overlay" id="over" hidden>
@@ -82,6 +107,25 @@ h1 span { color: var(--gold); display: block; }
     <p class="stats">Points: <strong id="o-score">0</strong><br>Reached level <strong id="o-level">1</strong></p>
     <p class="small" id="o-best"></p>
     <button class="btn" id="again" type="button">PLAY AGAIN</button>
+  </div>
+
+  <div id="crawl" role="dialog" aria-label="Story intro" hidden>
+    <canvas id="stars" aria-hidden="true"></canvas>
+    <p id="crawl-intro">Not long ago, on a soccer field<br>not so far away....</p>
+    <div id="crawl-logo" aria-hidden="true"><span>TOILET</span><span>GOALIE</span></div>
+    <div id="crawl-plane">
+      <div id="crawl-text">
+        <p class="ep">EPISODE I</p>
+        <h2>THE FLUSH<br>AWAKENS</h2>
+        <p>Everett says: “Let’s make a game about a toilet bad guy that shoots water and poop! There’s a soccer ball you control with your finger, and you aim it where you want it to go. Try to get it in the goal without getting caught by the goalie. The goalie is a toilet. Also, it’s kind of like Resident Evil sometimes. And the music should be rock music.”</p>
+        <p>Everett says: “Can you add spiders? If they web-shoot you when it’s dark, you have to start over again with zero points. And there are baby dolls, and you gotta hide under beds. And there are giants, and during the daytime you don’t want to get hit by their feet.”</p>
+        <p>“And there’s smoke coming out of a Resident Evil car, because there are cars all around, and you want to bounce the ball off of them. That gets you another point. And if you bounce one in, you get an extra point. And there are football cannons.”</p>
+        <p>Everett says: “I want Venus flytraps that can eat the ball. And paint drops that you don’t want to get hit by. They have huskies in them, and you don’t want to get bitten. If you get bitten, you switch into another character, like a man or a football man. Also, I’m thinking we add a way to earn points to get our lost lives back.”</p>
+        <p>And so the game was made. Now it is up to YOU to get the ball past the toilet....</p>
+      </div>
+    </div>
+    <div id="crawl-fade"></div>
+    <button id="skip" type="button">SKIP ▸</button>
   </div>
 </div>
 
@@ -1457,8 +1501,64 @@ function setMute(m) {
 }
 document.getElementById('mute').addEventListener('click', () => { initAudio(); setMute(!muted); });
 
+/* ---------- story crawl ---------- */
+const crawlEl = document.getElementById('crawl');
+const crawlText = document.getElementById('crawl-text');
+const crawlPlane = document.getElementById('crawl-plane');
+let crawlRaf = 0;
+function drawStars() {
+  const c = document.getElementById('stars'), r = c.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1);
+  c.width = Math.round(r.width * d); c.height = Math.round(r.height * d);
+  const x = c.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0);
+  x.fillStyle = '#000'; x.fillRect(0, 0, r.width, r.height);
+  const n = Math.round(r.width * r.height / 1600);
+  for (let i = 0; i < n; i++) {
+    x.globalAlpha = rand(0.25, 1); x.fillStyle = Math.random() < 0.12 ? '#bfe8ff' : '#ffffff';
+    const s = Math.random() < 0.08 ? 2 : 1;
+    x.fillRect(Math.random() * r.width, Math.random() * r.height, s, s);
+  }
+  x.globalAlpha = 1;
+}
+function runCrawl() {
+  crawlEl.hidden = false;
+  drawStars();
+  const intro = document.getElementById('crawl-intro'), logo = document.getElementById('crawl-logo');
+  intro.classList.remove('on'); logo.classList.remove('go'); void logo.offsetWidth;
+  const planeH = crawlPlane.clientHeight, textH = crawlText.offsetHeight;
+  const speed = Math.max(34, (planeH + textH) / 62);
+  crawlText.style.transform = `translateY(${planeH}px)`;
+  const t0 = performance.now();
+  let introOff = false, logoOn = false;
+  requestAnimationFrame(() => intro.classList.add('on'));
+  const tick = now => {
+    const t = (now - t0) / 1000;
+    if (t > 3.6 && !introOff) { introOff = true; intro.classList.remove('on'); }
+    if (t > 4.4 && !logoOn) { logoOn = true; logo.classList.add('go'); }
+    if (t > 5.4) {
+      const y = planeH - (t - 5.4) * speed;
+      crawlText.style.transform = `translateY(${y}px)`;
+      if (y < -crawlText.offsetHeight - 30) { endCrawl(); return; }
+    }
+    crawlRaf = requestAnimationFrame(tick);
+  };
+  cancelAnimationFrame(crawlRaf);
+  crawlRaf = requestAnimationFrame(tick);
+  document.getElementById('skip').focus({ preventScroll: true });
+}
+function endCrawl() {
+  cancelAnimationFrame(crawlRaf);
+  if (crawlEl.hidden) return;
+  crawlEl.hidden = true;
+  const play = document.getElementById('play');
+  if (!document.getElementById('title').hidden) play.focus({ preventScroll: true });
+}
+document.getElementById('skip').addEventListener('click', endCrawl);
+document.getElementById('story').addEventListener('click', runCrawl);
+window.addEventListener('keydown', e => { if (!crawlEl.hidden && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); endCrawl(); } });
+
 function start(data) {
   data = data || {};
+  if (!reduceMotion && !(data.level > 1)) runCrawl();
   if (data.muted) setMute(true);
   resize(); resetBall();
   document.getElementById('play').addEventListener('click', () => { initAudio(); newGame(data.level > 1 && data.lives > 0 ? data : null); data = {}; });
