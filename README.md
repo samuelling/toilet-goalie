@@ -6,6 +6,9 @@ Built for phones. Open `index.html` in a browser, or turn on GitHub Pages (Setti
 
 ## How to play
 
+Pick **1 PLAYER** or **2 PLAYERS**. In two-player mode there are two balls (P1 blue, P2 orange) on the same screen: each player drags and flicks their own ball, you share the toilet paper rolls and the points, and the bad guys chase whoever is closest.
+
+
 - **Drag** the ball to dodge. **Flick** it, or **tap** where you want it to go.
 - Get it past the toilet into the goal. If the toilet catches it, you lose a toilet paper roll.
 - **Water** knocks you around. **Poop** costs a roll.

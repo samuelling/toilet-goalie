@@ -55,6 +55,10 @@ h1 span { color: var(--gold); display: block; }
 .stats { font-size: 1.2rem; font-weight: 600; margin: 0; line-height: 1.4; font-variant-numeric: tabular-nums; }
 .stats strong { font-family: var(--display); font-weight: 400; color: var(--gold); font-size: 1.5rem; }
 .small { font-size: 0.9rem; opacity: 0.75; margin: 0; }
+.play-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.play-row .btn { font-size: 1.35rem; padding: 13px 22px 11px; }
+.btn-2p { background: var(--water); box-shadow: 0 6px 0 #1b7fa8; }
+.btn-2p:active { box-shadow: 0 2px 0 #1b7fa8; }
 .linkbtn { font-family: var(--body); font-weight: 800; font-size: 1rem; color: var(--water); background: none; border: 0; padding: 6px 10px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 
 /* Story crawl */
@@ -115,6 +119,13 @@ h1 span { color: var(--gold); display: block; }
   <div class="overlay" id="title">
     <p class="kicker">AN EVERETT GAME</p>
     <h1>TOILET <span>GOALIE</span></h1>
+    <div class="play-row">
+      <button class="btn" id="play" type="button">1 PLAYER</button>
+      <button class="btn btn-2p" id="play2" type="button">2 PLAYERS</button>
+    </div>
+    <p class="small">2 players: two balls on one screen. Each player drags their own!</p>
+    <button class="linkbtn" id="story" type="button">Watch the story</button>
+    <button class="linkbtn" id="watch-ending" type="button" hidden>Watch the ending</button>
     <ul class="how">
       <li><i class="dot d-ball"></i><span><b>Drag</b> the ball to dodge. <b>Flick</b> it, or <b>tap</b> where you want it to go.</span></li>
       <li><i class="dot d-car"></i><span><b>Bounce</b> off cars for points. Every <b>5 points</b> wins back a lost roll!</span></li>
@@ -125,9 +136,6 @@ h1 span { color: var(--gold); display: block; }
       <li><i class="dot d-boss"></i><span>Level 13: beat the <b>FINAL BOSS</b>, a giant Fire Rock Guy!</span></li>
       <li><i class="dot d-dark"></i><span>Dark: hide under beds from the dolls. If a spider web gets you, you <b>start over at zero</b>!</span></li>
     </ul>
-    <button class="btn" id="play" type="button">PLAY</button>
-    <button class="linkbtn" id="story" type="button">Watch the story</button>
-    <button class="linkbtn" id="watch-ending" type="button" hidden>Watch the ending</button>
   </div>
 
   <div class="overlay" id="over" hidden>
@@ -166,6 +174,7 @@ h1 span { color: var(--gold); display: block; }
         <p>Everett says: “What if whenever I’m a guy, there are poisonous mushrooms, and you are in a jungle?”</p>
         <p>Everett says: “Let’s add a true ending. You get past the bad guys, and you need to get the golden gem and run out, or else the bad guys will capture you!”</p>
         <p>Everett says: “Add some cages that sometimes trap the ball, and you turn into a fart machine!”</p>
+        <p>Everett says: “Can we make this have two players, where there are two balls?”</p>
         <p>And so the game was made. Now it is up to YOU to get the ball past the toilet....</p>
       </div>
     </div>
@@ -189,7 +198,9 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let W = 400, H = 700, S = 1, hudH = 50, goalTop = 58, goalLineY = 120, goalW = 260, goalL = 70, goalR = 330, R = 18, zoneTop = 350;
 let mode = 'title', lives = 3, score = 0, level = 1, dark = false, time = 0, shake = 0, flashT = 0, lightningT = 6, betweenT = 0, best = 0;
 const goalie = { x: 200, y: 160, w: 90, cd: 1.5, mouth: 0, sulk: 0 };
-const ball = { x: 200, y: 600, vx: 0, vy: 0, held: false, kicked: false, gone: false, out: false, soaked: 0, inv: 0, dirty: 0, spin: 0, daze: 0, char: 'ball', charT: 0, elem: null, elemT: 0, inRiver: false, ringPid: '', stuck: 0, bossHit: false, poison: 0, caged: null, fartShot: false, fartT: 0 };
+const mkBall = id => ({ id, x: 200, y: 600, vx: 0, vy: 0, held: false, kicked: false, gone: false, out: false, soaked: 0, inv: 0, dirty: 0, spin: 0, daze: 0, char: 'ball', charT: 0, elem: null, elemT: 0, inRiver: false, ringPid: '', stuck: 0, bossHit: false, poison: 0, caged: null, fartShot: false, fartT: 0, hidden: false, ptr: { x: 0, y: 0, id: null, samples: [] } });
+const P1 = mkBall(0), P2 = mkBall(1), balls = [P1, P2];
+let ball = P1, twoP = false;
 let shots = [], zombies = [], parts = [], pops = [], timers = [], zombieT = 2, aimMark = null;
 let cars = [], beds = [], cannons = [], spiders = [], dolls = [], feet = [], smoke = [], feat = {};
 let traps = [], paints = [], huskies = [], stains = [], paintT = 2, lifePts = 0;
@@ -201,7 +212,16 @@ let cages = [], cageT = 12, gas = [];
 const LEAF_COLORS = ['#2f7d32', '#3f9a3a', '#1f5e2a', '#4caf50'];
 const jungleLeaves = Array.from({ length: 70 }, (_, i) => ({ side: i % 3, f: Math.random(), r: Math.random(), s: Math.random(), c: LEAF_COLORS[i % 4] }));
 let giantT = 3, cannonT = 3, spiderT = 3, dollT = 2, smokeT = 0, cannonTurn = 0, webbedT = 0, bounced = false, hidden = false;
-const ptr = { x: 0, y: 0, id: null, samples: [] };
+let ptr = P1.ptr;
+const actives = () => twoP ? balls : [P1];
+function use(b) { ball = b; ptr = b.ptr; hidden = b.hidden; }
+function nearestBall(x, y) {
+  let best = null, bd = 1e9;
+  for (const b of actives()) { if (b.gone) continue; const dd = Math.hypot(b.x - x, b.y - y); if (dd < bd) { bd = dd; best = b; } }
+  return best || P1;
+}
+function pickBall() { const a = actives().filter(b => !b.gone); return a.length ? a[Math.floor(Math.random() * a.length)] : P1; }
+const anyBall = fn => actives().some(fn);
 
 try { best = +localStorage.getItem('toilet-goalie-best') || 0; } catch (e) {}
 
@@ -553,23 +573,26 @@ const sfx = {
 };
 
 /* ---------- game flow ---------- */
-function resetBall() {
-  Object.assign(ball, { x: W / 2, y: H * 0.82, vx: 0, vy: 0, held: false, kicked: false, gone: false, out: false, soaked: 0, daze: 0, stuck: 0 });
+function resetBall(b = ball) {
+  const x = twoP ? (b.id === 0 ? W * 0.33 : W * 0.67) : W / 2;
+  Object.assign(b, { x, y: H * 0.82, vx: 0, vy: 0, held: false, kicked: false, gone: false, out: false, soaked: 0, daze: 0, stuck: 0, caged: null });
+  b.ptr.id = null;
 }
 function prepLevel() {
   dark = level % 3 === 0;
   feat = features();
   boss = feat.boss ? makeBoss() : null;
-  fires = []; puddles = []; ball.stuck = 0;
-  cages = []; gas = []; ball.caged = null; cageT = rand(8, 14);
+  fires = []; puddles = [];
+  cages = []; gas = []; cageT = rand(8, 14);
   shots = []; zombies = []; spiders = []; dolls = []; feet = []; smoke = []; paints = []; huskies = []; stains = [];
   paintT = 2; orbs = []; kayaks = []; orbT = rand(5, 9); kayakT = 1.5;
-  if (!ball.elem && level > 1 && Math.random() < 0.25) {
+  for (const b of actives()) if (!b.elem && level > 1 && Math.random() < 0.25) {
     const pick = ['fire', 'water', 'steam'][Math.floor(Math.random() * 3)];
-    later(0.9, () => giveElem(pick));
+    later(0.9 + b.id * 0.5, () => { use(b); giveElem(pick); use(P1); });
   }
   buildScenery();
-  resetBall();
+  for (const b of balls) resetBall(b);
+  use(P1);
   goalie.x = W / 2; goalie.cd = 1.4; goalie.sulk = 0;
   zombieT = 2.5; lightningT = rand(4, 7);
   giantT = 2.5; cannonT = 2; spiderT = 2.5; dollT = 1.5;
@@ -579,7 +602,8 @@ function prepLevel() {
   mode = 'between'; betweenT = dark ? 3.8 : 1.3 + 0.5 * introLine().length;
 }
 function newGame(d) {
-  lifePts = 0; ball.char = 'ball'; ball.charT = 0; ball.elem = null; ball.elemT = 0;
+  lifePts = 0;
+  for (const b of balls) Object.assign(b, { char: 'ball', charT: 0, elem: null, elemT: 0, poison: 0, inv: 0 });
   lives = (d && d.lives) || 3; score = (d && d.score) || 0; level = (d && d.level) || 1;
   timers = []; parts = []; pops = [];
   document.getElementById('title').hidden = true;
@@ -619,18 +643,18 @@ function caught() {
   pop('SAVED!', goalie.x, goalie.y + goalie.w * 0.5, '#4cc9ff', 36);
   burst(goalie.x, goalie.y, 24, ['#4cc9ff', '#bfefff', '#ffffff'], 260, 200, 4);
   loseLife();
-  if (lives > 0) later(1.0, resetBall);
+  const cb = ball; if (lives > 0) later(1.0, () => resetBall(cb));
 }
 function missed() {
   ball.out = true;
   pop('MISSED!', W / 2, goalLineY + 70 * S, '#c9d3cc', 30);
-  later(0.8, () => { if (mode === 'play') resetBall(); });
+  const mb = ball; later(0.8, () => { if (mode === 'play') resetBall(mb); });
 }
 function scoreGoal() {
   if (boss) {
     ball.out = true; sfx.goal();
     addPoints(1); hurtBoss(2, 'GOAL! -2');
-    later(0.9, () => { if (mode === 'play') resetBall(); });
+    const gb = ball; later(0.9, () => { if (mode === 'play') resetBall(gb); });
     return;
   }
   addPoints(bounced ? 2 : 1); mode = 'goal';
@@ -690,7 +714,7 @@ function chomp(tr) {
   pop('CHOMP!', tr.x, tr.y - 44 * S, '#7dff6a', 34);
   burst(tr.x, tr.y, 16, ['#5fbf3f', '#ff5a7a', '#ffffff'], 220, 250, 4);
   loseLife();
-  if (lives > 0) later(1.1, () => { if (mode === 'play') resetBall(); });
+  const hb = ball; if (lives > 0) later(1.1, () => { if (mode === 'play') resetBall(hb); });
 }
 function spawnPaint() {
   const colors = ['#ff4fa3', '#ff9a1f', '#a35cff', '#19c7b0', '#ffe14d', '#3d8bff'];
@@ -737,7 +761,7 @@ function breakCage(c) {
   burst(c.x, c.y, 26, ['#8a929c', '#3a3f46', '#ffd23f'], 300, 300, 5);
   pop('BROKE OUT!', c.x, c.y - c.s * 0.8, '#ffffff', 28);
   ball.char = 'fart'; ball.charT = 10; ball.fartT = 0.6;
-  later(0.4, () => { sfx.fart(1); pop('FART MACHINE!', W / 2, H * 0.55, '#9be564', 32); addGas(ball.x, ball.y, 22 * S); });
+  const fb = ball; later(0.4, () => { sfx.fart(1); pop((twoP ? (fb.id ? 'P2 ' : 'P1 ') : '') + 'FART MACHINE!', W / 2, H * 0.55, '#9be564', 30); addGas(fb.x, fb.y, 22 * S); });
 }
 function addGas(x, y, r) {
   if (gas.length > 24) gas.shift();
@@ -812,6 +836,7 @@ function updateBoss(dt) {
   }
   if (mode !== 'play') return;
   const s = b.w / 100;
+  use(nearestBall(b.x, b.y));
   const target = clamp(ball.x + Math.sin(time * 0.8) * 40 * S, goalL + b.w * 0.3, goalR - b.w * 0.3);
   b.x += clamp(target - b.x, -55 * S * dt, 55 * S * dt);
   b.cd -= dt;
@@ -826,6 +851,9 @@ function updateBoss(dt) {
     if (big) { sfx.roar(); shake = reduceMotion ? 0 : 0.3; pop('ROAR!', b.x, b.y + 60 * s, '#ff6a1f', 30); }
     b.cd = Math.max(1.3, 2.4 - (b.max - b.hp) * 0.12) * rand(0.85, 1.15);
   }
+  for (const pb of actives()) {
+  use(pb);
+  if (b.dead) break;
   if (ball.kicked && !ball.out && !ball.bossHit && !ball.gone && Math.abs(ball.x - b.x) < 48 * s + R * 0.6 && ball.y - R < b.y + 46 * s && ball.y + R > b.y - 70 * s) {
     ball.bossHit = true; ball.kicked = false;
     ball.y = b.y + 46 * s + R; ball.vy = Math.abs(ball.vy) * 0.5 + 100 * S; ball.vx *= 0.6;
@@ -833,6 +861,8 @@ function updateBoss(dt) {
     if (dmg === 0) { sfx.roar(); pop('HE LIKES FIRE!', b.x, b.y + 70 * s, '#ff8a3d', 24); }
     else hurtBoss(dmg, (ball.elem ? 'SPLASH! -' : 'BOOM! -') + dmg);
   }
+  }
+  use(P1);
 }
 function hurtBoss(dmg, label) {
   const b = boss;
@@ -866,7 +896,7 @@ function startEnding(fromTitle) {
   mode = 'ending'; endT = 0; doorClosed = false; timers = []; pops = [];
   shots = []; fires = []; puddles = []; shrooms = []; zombies = []; dolls = []; huskies = []; spiders = [];
   feet = []; kayaks = []; paints = []; orbs = []; synths = []; traps = []; cannons = []; beds = []; stains = [];
-  boss = null; river = null; dark = false; jungleA = 0; cages = []; gas = []; ball.caged = null;
+  boss = null; river = null; dark = false; jungleA = 0; cages = []; gas = []; use(P1); ball.caged = null;
   Object.assign(ball, { gone: false, held: false, kicked: false, out: false, vx: 0, vy: 0, inv: 0, stuck: 0, poison: 0, x: W / 2, y: H * 0.8 });
   endGuys = [
     { type: 'toilet', lag: 0.1, xo: 0 },
@@ -1017,6 +1047,7 @@ const CREDITS = [
   ['role', 'Jungle & poisonous mushrooms'], ['name', 'Everett'],
   ['role', 'Cages & the fart machine'], ['name', 'Everett'],
   ['role', 'The golden gem ending'], ['name', 'Everett'],
+  ['role', 'Two-player mode'], ['name', 'Everett'],
   ['role', 'Rock music request'], ['name', 'Everett'],
   ['role', 'Chief game tester'], ['name', 'Everett'], ['gap'],
   ['role', 'Typing what Everett said'], ['name', 'Dad'],
@@ -1059,24 +1090,29 @@ document.getElementById('cr-keep').addEventListener('click', () => { leaveCredit
 document.getElementById('cr-again').addEventListener('click', () => { leaveCredits(); initAudio(); newGame(null); });
 document.getElementById('watch-ending').addEventListener('click', () => { initAudio(); score = 0; startEnding(true); });
 function updateDay(dt) {
+  const A = actives();
   // Venus fly traps
   for (const tr of traps) {
     tr.t += dt;
-    const d = Math.hypot(ball.x - tr.x, ball.y - tr.y);
     if (tr.state === 'open') {
       tr.open = Math.min(1, tr.open + dt * 3);
-      if (mode === 'play' && !ball.gone && ball.inv <= 0 && d < tr.r + R * 0.6) {
-        if (ball.elem === 'fire' || ball.elem === 'steam') {
-          tr.state = 'closed'; tr.t = -1.6; tr.ate = false; tr.open = 0; sfx.sizzle();
-          pop('BURNED!', tr.x, tr.y - 40 * S, '#ff8a3d', 28);
-          burst(tr.x, tr.y, 16, ['#ff8a3d', '#ffd23f', '#555'], 200, -80, 4);
+      for (const b of A) {
+        if (tr.state !== 'open') break;
+        use(b);
+        if (mode === 'play' && !ball.gone && ball.inv <= 0 && Math.hypot(ball.x - tr.x, ball.y - tr.y) < tr.r + R * 0.6) {
+          if (ball.elem === 'fire' || ball.elem === 'steam') {
+            tr.state = 'closed'; tr.t = -1.6; tr.ate = false; tr.open = 0; sfx.sizzle();
+            pop('BURNED!', tr.x, tr.y - 40 * S, '#ff8a3d', 28);
+            burst(tr.x, tr.y, 16, ['#ff8a3d', '#ffd23f', '#555'], 200, -80, 4);
+          }
+          else if (ball.kicked) chomp(tr); else { tr.state = 'snap'; tr.t = 0; }
         }
-        else if (ball.kicked) chomp(tr); else { tr.state = 'snap'; tr.t = 0; }
       }
     } else if (tr.state === 'snap') {
       tr.open = 1 - Math.pow(Math.min(1, tr.t / 0.4), 3);
       if (tr.t >= 0.4) {
-        if (mode === 'play' && !ball.gone && !ball.kicked && ball.inv <= 0 && d < tr.r + R * 0.7) chomp(tr);
+        const v = A.find(b => mode === 'play' && !b.gone && !b.kicked && b.inv <= 0 && Math.hypot(b.x - tr.x, b.y - tr.y) < tr.r + R * 0.7);
+        if (v) { use(v); chomp(tr); }
         else { tr.state = 'closed'; tr.t = 0; tr.ate = false; tr.open = 0; sfx.snapMiss(); }
       }
     } else {
@@ -1085,9 +1121,9 @@ function updateDay(dt) {
     }
   }
   // paint drops with huskies inside
-  if (feat.paint && mode === 'play' && !ball.gone) {
+  if (feat.paint && mode === 'play' && anyBall(b => !b.gone)) {
     paintT -= dt;
-    if (paintT <= 0 && paints.length < 2) { spawnPaint(); paintT = Math.max(1.8, rand(2.6, 3.8) - level * 0.05); }
+    if (paintT <= 0 && paints.length < 2) { use(pickBall()); spawnPaint(); paintT = Math.max(1.8, rand(2.6, 3.8) - level * 0.05); }
   }
   for (const p of paints) {
     p.t += dt;
@@ -1097,25 +1133,30 @@ function updateDay(dt) {
     if (stains.length > 10) stains.shift();
     const blobs = []; for (let i = 0; i < 6; i++) blobs.push({ dx: rand(-14, 14) * S, dy: rand(-9, 9) * S, r: rand(6, 13) * S });
     stains.push({ x: p.x, y: p.y, color: p.color, blobs });
-    const hit = mode === 'play' && !ball.gone && !ball.kicked && ball.inv <= 0 && Math.hypot(ball.x - p.x, ball.y - p.y) < R + 18 * S;
-    if (hit) {
+    const v = A.find(b => mode === 'play' && !b.gone && !b.kicked && b.inv <= 0 && Math.hypot(b.x - p.x, b.y - p.y) < R + 18 * S);
+    if (v) {
+      use(v);
       if (ball.elem === 'water' || ball.elem === 'steam') { sfx.gulp(); pop('WASHED OFF!', ball.x, ball.y - 40 * S, '#4cc9ff', 24); }
       else bite();
     }
-    if (huskies.length < 3) spawnHusky(p.x, p.y, hit ? 'flee' : 'chase');
+    if (huskies.length < 3) spawnHusky(p.x, p.y, v ? 'flee' : 'chase');
   }
   paints = paints.filter(p => !p.dead);
   for (const h of huskies) {
     h.t += dt; h.leg += dt * 14;
-    if (h.state === 'chase' && (h.t > 5 || mode !== 'play' || ball.gone)) h.state = 'flee';
+    const tgt = nearestBall(h.x, h.y);
+    if (h.state === 'chase' && (h.t > 5 || mode !== 'play' || tgt.gone)) h.state = 'flee';
     let tx, ty, sp = h.sp;
-    if (h.state === 'chase') { tx = ball.x; ty = ball.y; } else { tx = h.x < W / 2 ? -60 : W + 60; ty = h.y; sp *= 1.5; }
+    if (h.state === 'chase') { tx = tgt.x; ty = tgt.y; } else { tx = h.x < W / 2 ? -60 : W + 60; ty = h.y; sp *= 1.5; }
     const dx = tx - h.x, dy = ty - h.y, n = Math.hypot(dx, dy) || 1;
     h.x += dx / n * sp * dt; h.y += dy / n * sp * dt;
     if (h.state === 'chase' && mode === 'play') { h.fireT -= dt; if (h.fireT <= 0) { h.fireT = 0.5; addFire(h.x - h.face * 14 * S, h.y + 4 * S, 2.2); } }
     if (Math.abs(dx) > 2) h.face = dx > 0 ? 1 : -1;
     if (h.state === 'flee' && (h.x < -40 || h.x > W + 40)) h.dead = true;
-    if (h.state === 'chase' && mode === 'play' && !ball.gone && Math.hypot(ball.x - h.x, ball.y - h.y) < R + 14 * S) {
+    if (h.state === 'chase' && mode === 'play') for (const b of A) {
+      if (h.state !== 'chase') break;
+      use(b);
+      if (ball.gone || Math.hypot(ball.x - h.x, ball.y - h.y) >= R + 14 * S) continue;
       if (ball.kicked) { h.state = 'flee'; sfx.yip(); pop('YIP!', h.x, h.y - 28 * S, '#ffffff', 24); }
       else if (ball.inv <= 0) {
         h.state = 'flee';
@@ -1130,13 +1171,17 @@ function updateDay(dt) {
   for (const f of fires) {
     f.life -= dt;
     if (f.life <= 0) { f.dead = true; continue; }
-    if (mode === 'play' && !ball.gone && !ball.kicked && Math.hypot(ball.x - f.x, ball.y - f.y) < f.r + R * 0.5) {
-      if (ball.elem === 'water' || ball.elem === 'steam') { f.dead = true; sfx.sizzle(); pop('PSSST!', f.x, f.y - 30 * S, '#bfefff', 22); burst(f.x, f.y, 8, ['#cccccc', '#ffffff'], 120, -60, 4); }
-      else if (ball.elem !== 'fire' && ball.inv <= 0) {
-        ball.inv = 1.6; sfx.sizzle(); buzz(80);
-        pop('OUCH! HOT!', ball.x, ball.y - 40 * S, '#ff8a3d', 28);
-        burst(ball.x, ball.y, 14, ['#ff8a3d', '#ffd23f'], 200, -80, 4);
-        loseLife();
+    for (const b of A) {
+      if (f.dead) break;
+      use(b);
+      if (mode === 'play' && !ball.gone && !ball.kicked && Math.hypot(ball.x - f.x, ball.y - f.y) < f.r + R * 0.5) {
+        if (ball.elem === 'water' || ball.elem === 'steam') { f.dead = true; sfx.sizzle(); pop('PSSST!', f.x, f.y - 30 * S, '#bfefff', 22); burst(f.x, f.y, 8, ['#cccccc', '#ffffff'], 120, -60, 4); }
+        else if (ball.elem !== 'fire' && ball.inv <= 0) {
+          ball.inv = 1.6; sfx.sizzle(); buzz(80);
+          pop('OUCH! HOT!', ball.x, ball.y - 40 * S, '#ff8a3d', 28);
+          burst(ball.x, ball.y, 14, ['#ff8a3d', '#ffd23f'], 200, -80, 4);
+          loseLife();
+        }
       }
     }
   }
@@ -1145,58 +1190,46 @@ function updateDay(dt) {
   for (const p of puddles) {
     p.t += dt;
     if (p.t > 14) { p.dead = true; continue; }
-    if (mode === 'play' && !ball.gone && !ball.kicked && ball.stuck <= 0 && ball.char !== 'pee' && Math.hypot(ball.x - p.x, ball.y - p.y) < p.r + R * 0.3) {
-      p.dead = true;
-      if (ball.elem === 'fire' || ball.elem === 'steam') { sfx.sizzle(); pop('DRIED IT UP!', p.x, p.y - 34 * S, '#ff8a3d', 22); }
-      else {
-        ball.stuck = 1.3; ball.held = false; ptr.id = null; ball.vx = ball.vy = 0; ball.dirty = 2.5;
-        sfx.squelch(); buzz(60);
-        pop('STUCK!', ball.x, ball.y - 40 * S, '#c58646', 30);
+    for (const b of A) {
+      if (p.dead) break;
+      use(b);
+      if (mode === 'play' && !ball.gone && !ball.kicked && ball.stuck <= 0 && !ball.caged && ball.char !== 'pee' && Math.hypot(ball.x - p.x, ball.y - p.y) < p.r + R * 0.3) {
+        p.dead = true;
+        if (ball.elem === 'fire' || ball.elem === 'steam') { sfx.sizzle(); pop('DRIED IT UP!', p.x, p.y - 34 * S, '#ff8a3d', 22); }
+        else {
+          ball.stuck = 1.3; ball.held = false; ptr.id = null; ball.vx = ball.vy = 0; ball.dirty = 2.5;
+          sfx.squelch(); buzz(60);
+          pop('STUCK!', ball.x, ball.y - 40 * S, '#c58646', 30);
+        }
       }
     }
   }
   puddles = puddles.filter(p => !p.dead);
-  if (ball.stuck > 0) {
-    ball.stuck -= dt; ball.vx = ball.vy = 0;
-    if (ball.stuck <= 0) {
-      ball.char = 'pee'; ball.charT = 10; sfx.morph();
-      burst(ball.x, ball.y, 16, ['#ffe14d', '#fff6b0'], 200, 0, 4);
-      pop('TINY PEE DROP!', W / 2, H * 0.58, '#ffe14d', 28);
-    }
-  }
   updateBoss(dt);
 
   // cages drop from the sky; break out and you're a fart machine
-  if (mode === 'play' && level >= 2 && !boss && !ball.gone) {
+  if (mode === 'play' && level >= 2 && !boss && anyBall(b => !b.gone)) {
     cageT -= dt;
-    if (cageT <= 0 && !cages.length && !ball.caged) { spawnCage(); cageT = rand(10, 16); }
+    if (cageT <= 0 && !cages.length && !anyBall(b => b.caged)) { use(pickBall()); spawnCage(); cageT = rand(10, 16); }
   }
   for (const c of cages) {
     c.t += dt; c.shake = Math.max(0, c.shake - dt);
     if (c.phase === 'drop' && c.t >= 1) {
       c.phase = 'down'; c.t = 0; sfx.clang(); shake = reduceMotion ? 0 : Math.max(shake, 0.2);
       burst(c.x, c.y + c.s * 0.5, 10, ['#9aa0a6', '#cfc6ae'], 160, 250, 4);
-      if (mode === 'play' && !ball.gone && !ball.kicked && !ball.caged && Math.abs(ball.x - c.x) < c.s * 0.5 && Math.abs(ball.y - c.y) < c.s * 0.5) {
-        ball.caged = c; c.trapped = true; ball.held = false; ptr.id = null; ball.vx = ball.vy = 0;
+      const v = A.find(b => mode === 'play' && !b.gone && !b.kicked && !b.caged && Math.abs(b.x - c.x) < c.s * 0.5 && Math.abs(b.y - c.y) < c.s * 0.5);
+      if (v) {
+        use(v);
+        ball.caged = c; c.ball = v; c.trapped = true; ball.held = false; ptr.id = null; ball.vx = ball.vy = 0;
         pop('TRAPPED!', c.x, c.y - c.s * 0.8, '#ff4545', 30);
-        later(0.5, () => { if (ball.caged === c) pop('TAP TAP TAP!', W / 2, H * 0.48, '#ffd23f', 32); });
+        later(0.5, () => { if (v.caged === c) pop('TAP TAP TAP!', W / 2, H * 0.48, '#ffd23f', 32); });
       }
     } else if (c.phase === 'down') {
-      if (c.trapped) { ball.x = c.x; ball.y = c.y; ball.vx = ball.vy = 0; if (c.t >= 4) breakCage(c); }
+      if (c.trapped) { const b = c.ball; b.x = c.x; b.y = c.y; b.vx = b.vy = 0; if (c.t >= 4) { use(b); breakCage(c); } }
       else if (c.t >= 2.5) { c.phase = 'lift'; c.t = 0; }
     } else if (c.phase === 'lift' && c.t >= 0.6) c.dead = true;
   }
   cages = cages.filter(c => !c.dead);
-  if (ball.caged && ball.gone) ball.caged = null;
-  if (ball.char === 'fart' && mode === 'play' && !ball.gone) {
-    ball.fartT -= dt;
-    if (ball.fartT <= 0) {
-      ball.fartT = rand(1.2, 2.2); sfx.fart(0.5);
-      addGas(ball.x + rand(-6, 6) * S, ball.y + R * 0.5, 13 * S);
-      if (Math.random() < 0.45) pop(['TOOT!', 'PFFT!', 'BRAAP!'][Math.floor(Math.random() * 3)], ball.x, ball.y - 36 * S, '#9be564', 20);
-    }
-    if (ball.kicked && ball.fartShot && Math.random() < 0.35) addGas(ball.x, ball.y, 9 * S);
-  }
   for (const g of gas) { g.t += dt; g.r += 8 * S * dt; g.y -= 6 * S * dt; }
   gas = gas.filter(g => g.t < g.life);
   for (const g of gas) {
@@ -1208,18 +1241,19 @@ function updateDay(dt) {
   }
 
   // when you're a guy, you're in a jungle with poisonous mushrooms
-  const guy = (ball.char === 'man' || ball.char === 'football') && mode !== 'title' && mode !== 'over';
+  const guy = anyBall(b => b.char === 'man' || b.char === 'football') && mode !== 'title' && mode !== 'over';
   jungleA = clamp(jungleA + (guy ? 2 : -2) * dt, 0, 1);
   if (guy && !wasGuy) {
     sfx.bird();
     pop('JUNGLE TIME!', W / 2, H * 0.5, '#7dff6a', 30);
+    use(P1);
     for (let i = 0; i < 3; i++) spawnShroom();
     shroomT = 2.5;
   }
   wasGuy = guy;
   if (guy && mode === 'play') {
     shroomT -= dt;
-    if (shroomT <= 0 && shrooms.length < 5) { spawnShroom(); shroomT = rand(2.2, 3.2); }
+    if (shroomT <= 0 && shrooms.length < 5) { use(P1); spawnShroom(); shroomT = rand(2.2, 3.2); }
     birdT -= dt;
     if (birdT <= 0) { sfx.bird(); birdT = rand(3, 6); }
   }
@@ -1227,27 +1261,28 @@ function updateDay(dt) {
     m.grow = clamp(m.grow + (guy ? 2 : -2) * dt, -0.01, 1);
     if (m.grow <= 0 && !guy) { m.dead = true; continue; }
     if (m.kind === 'purple' && Math.random() < 0.04) parts.push({ x: m.x + rand(-8, 8) * S, y: m.y - 10 * S, vx: rand(-8, 8) * S, vy: -rand(10, 25) * S, g: 0, life: 0.9, max: 0.9, c: '#7dff6a', s: 2.5 * S });
-    if (!guy || m.grow < 0.6 || mode !== 'play' || ball.gone || Math.hypot(ball.x - m.x, ball.y - m.y) > R + 11 * S) continue;
-    if (ball.kicked) {
-      m.dead = true; addPoints(1); sfx.squish();
-      pop('SQUISH! +1', m.x, m.y - 30 * S, '#ffd23f', 24);
-      burst(m.x, m.y, 12, [m.kind === 'red' ? '#d8262e' : '#8a3fd1', '#f1ead8'], 200, 250, 4);
-    } else if (ball.elem === 'fire' || ball.elem === 'steam') {
-      m.dead = true; sfx.sizzle();
-      pop('BURNED!', m.x, m.y - 30 * S, '#ff8a3d', 24);
-      burst(m.x, m.y, 10, ['#ff8a3d', '#555555'], 160, -60, 4);
-    } else if (ball.inv <= 0) {
-      m.dead = true; ball.inv = 1.6; ball.poison = 2.5; sfx.poison(); buzz(90);
-      pop('POISONED!', ball.x, ball.y - 40 * S, '#7dff6a', 30);
-      burst(ball.x, ball.y, 18, ['#7dff6a', '#3fbf3f', '#8a3fd1'], 220, 0, 4);
-      loseLife();
+    if (!guy || m.grow < 0.6 || mode !== 'play') continue;
+    for (const b of A) {
+      if (m.dead) break;
+      use(b);
+      if (ball.gone || Math.hypot(ball.x - m.x, ball.y - m.y) > R + 11 * S) continue;
+      if (ball.kicked) {
+        m.dead = true; addPoints(1); sfx.squish();
+        pop('SQUISH! +1', m.x, m.y - 30 * S, '#ffd23f', 24);
+        burst(m.x, m.y, 12, [m.kind === 'red' ? '#d8262e' : '#8a3fd1', '#f1ead8'], 200, 250, 4);
+      } else if (ball.elem === 'fire' || ball.elem === 'steam') {
+        m.dead = true; sfx.sizzle();
+        pop('BURNED!', m.x, m.y - 30 * S, '#ff8a3d', 24);
+        burst(m.x, m.y, 10, ['#ff8a3d', '#555555'], 160, -60, 4);
+      } else if (ball.inv <= 0) {
+        m.dead = true; ball.inv = 1.6; ball.poison = 2.5; sfx.poison(); buzz(90);
+        pop('POISONED!', ball.x, ball.y - 40 * S, '#7dff6a', 30);
+        burst(ball.x, ball.y, 18, ['#7dff6a', '#3fbf3f', '#8a3fd1'], 220, 0, 4);
+        loseLife();
+      }
     }
   }
   shrooms = shrooms.filter(m => !m.dead);
-  if (ball.poison > 0) {
-    ball.poison -= dt;
-    if (!ball.gone && Math.random() < 0.4) parts.push({ x: ball.x + rand(-R, R) * 0.6, y: ball.y, vx: rand(-10, 10) * S, vy: -rand(20, 40) * S, g: 0, life: 0.6, max: 0.6, c: '#7dff6a', s: 3 * S });
-  }
 
   // kayaks paddling along the river
   if (river && mode === 'play') {
@@ -1263,18 +1298,22 @@ function updateDay(dt) {
     if (k.flip > 0) { k.flip -= dt; k.x += k.dir * 20 * S * dt; if (k.flip <= 0) k.dead = true; continue; }
     k.x += k.dir * k.sp * dt;
     if ((k.dir > 0 && k.x > W + 60 * S) || (k.dir < 0 && k.x < -60 * S)) k.dead = true;
-    if (mode === 'play' && !ball.gone && Math.abs(ball.x - k.x) < 36 * S + R * 0.6 && Math.abs(ball.y - k.y) < 9 * S + R * 0.8) {
-      if (ball.kicked) {
-        k.flip = 1.4; addPoints(1); sfx.flip();
-        pop('FLIPPED! +1', k.x, k.y - 30 * S, '#ffd23f', 24);
-        burst(k.x, k.y, 16, ['#4cc9ff', '#ffffff', '#ffb020'], 220, 250, 4);
-      } else if (ball.inv <= 0) {
-        ball.inv = 1.6;
-        ball.x = clamp(ball.x + k.dir * 30 * S, R, W - R);
-        if (!ball.held) ball.vx += k.dir * 250 * S;
-        sfx.poke(); buzz(90);
-        pop('POKE!', ball.x, ball.y - 40 * S, '#ffb020', 30);
-        loseLife();
+    for (const b of A) {
+      if (k.flip > 0) break;
+      use(b);
+      if (mode === 'play' && !ball.gone && Math.abs(ball.x - k.x) < 36 * S + R * 0.6 && Math.abs(ball.y - k.y) < 9 * S + R * 0.8) {
+        if (ball.kicked) {
+          k.flip = 1.4; addPoints(1); sfx.flip();
+          pop('FLIPPED! +1', k.x, k.y - 30 * S, '#ffd23f', 24);
+          burst(k.x, k.y, 16, ['#4cc9ff', '#ffffff', '#ffb020'], 220, 250, 4);
+        } else if (ball.inv <= 0) {
+          ball.inv = 1.6;
+          ball.x = clamp(ball.x + k.dir * 30 * S, R, W - R);
+          if (!ball.held) ball.vx += k.dir * 250 * S;
+          sfx.poke(); buzz(90);
+          pop('POKE!', ball.x, ball.y - 40 * S, '#ffb020', 30);
+          loseLife();
+        }
       }
     }
   }
@@ -1289,8 +1328,10 @@ function updateDay(dt) {
     }
     if (sy.ring >= 0) {
       sy.ring += 170 * S * dt;
-      if (sy.ring > 150 * S) sy.ring = -1;
-      else if (mode === 'play' && !ball.gone && !ball.kicked && ball.ringPid !== sy.id + sy.pid) {
+      if (sy.ring > 150 * S) { sy.ring = -1; continue; }
+      for (const b of A) {
+        use(b);
+        if (mode !== 'play' || ball.gone || ball.kicked || ball.caged || ball.ringPid === sy.id + sy.pid) continue;
         const dx = ball.x - sy.x, dy = ball.y - sy.y, d = Math.hypot(dx, dy) || 1;
         if (Math.abs(d - sy.ring) < R + 4 * S) {
           ball.ringPid = sy.id + sy.pid;
@@ -1305,7 +1346,7 @@ function updateDay(dt) {
   // power orbs: fire, water, or fire & water
   if (mode === 'play') {
     orbT -= dt;
-    if (orbT <= 0 && orbs.length < 1) {
+    if (orbT <= 0 && orbs.length < (twoP ? 2 : 1)) {
       const r = Math.random();
       const type = boss ? (r < 0.6 ? 'water' : r < 0.85 ? 'steam' : 'fire') : (r < 0.4 ? 'fire' : r < 0.8 ? 'water' : 'steam');
       orbs.push({ x: rand(40 * S, W - 40 * S), y: rand(zoneTop + 30 * S, H - 40 * S), type, t: 0 });
@@ -1315,18 +1356,11 @@ function updateDay(dt) {
   for (const o of orbs) {
     o.t += dt;
     if (o.t > 8) o.dead = true;
-    if (mode === 'play' && !ball.gone && Math.hypot(ball.x - o.x, ball.y - o.y) < R + 14 * S) { o.dead = true; giveElem(o.type); }
+    const v = A.find(b => mode === 'play' && !b.gone && Math.hypot(b.x - o.x, b.y - o.y) < R + 14 * S);
+    if (v && !o.dead) { o.dead = true; use(v); giveElem(o.type); }
   }
   orbs = orbs.filter(o => !o.dead);
-
-  if (ball.elem && (mode === 'play' || mode === 'between')) {
-    ball.elemT -= dt;
-    if (!ball.gone && Math.random() < 0.6) {
-      const c = ball.elem === 'fire' ? ['#ff8a3d', '#ffd23f', '#ff4a1f'] : ball.elem === 'water' ? ['#4cc9ff', '#bfefff'] : ['#ff6a3d', '#4cc9ff', '#ffffff'];
-      parts.push({ x: ball.x + rand(-R, R) * 0.7, y: ball.y + rand(-R, R) * 0.5, vx: rand(-20, 20) * S, vy: (ball.elem === 'water' ? rand(10, 40) : rand(-70, -30)) * S, g: 0, life: rand(0.3, 0.6), max: 0.6, c: c[Math.floor(Math.random() * c.length)], s: rand(2.5, 5) * S });
-    }
-    if (ball.elemT <= 0) { ball.elem = null; sfx.morph(); pop('POWER OFF', W / 2, H * 0.58, '#c9d3cc', 24); }
-  }
+  use(P1);
 }
 function giveElem(type) {
   ball.elem = type; ball.elemT = 12;
@@ -1337,10 +1371,10 @@ function giveElem(type) {
 }
 function webbed() {
   if (mode !== 'play') return;
-  mode = 'webbed'; webbedT = 0; ball.held = false; ptr.id = null;
+  mode = 'webbed'; webbedT = 0; for (const b of balls) { b.held = false; b.ptr.id = null; }
   sfx.webbed(); buzz([60, 60, 200]); shake = reduceMotion ? 0 : 0.5;
   if (score > best) { best = score; try { localStorage.setItem('toilet-goalie-best', best); } catch (e) {} }
-  later(3, () => { score = 0; level = 1; lives = 3; lifePts = 0; ball.char = 'ball'; ball.charT = 0; ball.elem = null; ball.elemT = 0; prepLevel(); });
+  later(3, () => { score = 0; level = 1; lives = 3; lifePts = 0; for (const b of balls) Object.assign(b, { char: 'ball', charT: 0, elem: null, elemT: 0 }); prepLevel(); });
 }
 function collideCars() {
   for (const c of cars.concat(synths)) {
@@ -1383,18 +1417,21 @@ function spawnDoll() {
   sfx.doll();
 }
 function updateHazards(dt) {
+  const A = actives();
   if (mode === 'webbed') webbedT += dt;
-  if (mode === 'play' && !ball.gone) {
-    if (feat.giants) { giantT -= dt; if (giantT <= 0 && feet.length < 2) { spawnFoot(); giantT = Math.max(1.7, rand(2.6, 3.8) - level * 0.08); } }
-    if (feat.cannons && cannons.length) { cannonT -= dt; if (cannonT <= 0) { fireCannon(); cannonT = Math.max(1.4, rand(2.2, 3.2) - level * 0.06); } }
+  if (mode === 'play' && anyBall(b => !b.gone)) {
+    if (feat.giants) { giantT -= dt; if (giantT <= 0 && feet.length < (twoP ? 3 : 2)) { use(pickBall()); spawnFoot(); giantT = Math.max(1.7, rand(2.6, 3.8) - level * 0.08); } }
+    if (feat.cannons && cannons.length) { cannonT -= dt; if (cannonT <= 0) { use(pickBall()); fireCannon(); cannonT = Math.max(1.4, rand(2.2, 3.2) - level * 0.06); } }
     if (feat.spiders) { spiderT -= dt; if (spiderT <= 0 && spiders.length < 2) { spawnSpider(); spiderT = rand(3.5, 5.5); } }
     if (feat.dolls) { dollT -= dt; if (dollT <= 0 && dolls.length < Math.min(3, 1 + Math.floor(level / 6))) { spawnDoll(); dollT = rand(3, 5); } }
   }
+  use(P1);
   updateDay(dt);
   for (const c of cars) c.flash = Math.max(0, c.flash - dt * 3);
   for (const c of cannons) {
     c.flash = Math.max(0, c.flash - dt * 4);
-    let d = Math.atan2(ball.y - c.y, ball.x - c.x) - c.ang;
+    const tb = nearestBall(c.x, c.y);
+    let d = Math.atan2(tb.y - c.y, tb.x - c.x) - c.ang;
     d = Math.atan2(Math.sin(d), Math.cos(d));
     c.ang += d * Math.min(1, dt * 3);
   }
@@ -1417,8 +1454,11 @@ function updateHazards(dt) {
       shake = reduceMotion ? 0 : Math.max(shake, 0.35);
       burst(f.x, f.y, 14, ['#6b8f5a', '#3d5e33', '#8a6a44'], 260, 300, 5);
       shots.forEach(s => { if (Math.hypot(s.x - f.x, s.y - f.y) < f.r) s.dead = true; });
-      if (mode === 'play' && !ball.gone && ball.inv <= 0 && Math.hypot(ball.x - f.x, ball.y - f.y) < f.r + R * 0.4) {
-        ball.inv = 1.6; pop('STOMPED!', f.x, f.y - 50 * S, '#ff8a3d', 32); loseLife();
+      for (const b of A) {
+        use(b);
+        if (mode === 'play' && !ball.gone && ball.inv <= 0 && Math.hypot(ball.x - f.x, ball.y - f.y) < f.r + R * 0.4) {
+          ball.inv = 1.6; pop('STOMPED!', f.x, f.y - 50 * S, '#ff8a3d', 32); loseLife();
+        }
       }
     } else if (f.phase === 'down' && f.t >= 0.7) { f.phase = 'up'; f.t = 0; }
     else if (f.phase === 'up' && f.t >= 0.45) f.dead = true;
@@ -1430,18 +1470,22 @@ function updateHazards(dt) {
     sp.leg += dt * 8; sp.t += dt;
     if (sp.state === 'down') { sp.y += 140 * S * dt; if (sp.y >= sp.ty) { sp.y = sp.ty; sp.state = 'wait'; sp.t = 0; } }
     else if (sp.state === 'wait') {
-      if (!sp.shot && sp.t > 0.9 && mode === 'play' && !ball.gone) {
+      const tb = nearestBall(sp.x, sp.y);
+      if (!sp.shot && sp.t > 0.9 && mode === 'play' && !tb.gone) {
         sp.shot = true;
-        const a = Math.atan2(ball.y - sp.y, ball.x - sp.x) + rand(-0.08, 0.08), v = (150 + level * 5) * S;
+        const a = Math.atan2(tb.y - sp.y, tb.x - sp.x) + rand(-0.08, 0.08), v = (150 + level * 5) * S;
         shots.push({ type: 'web', x: sp.x, y: sp.y + 8 * S, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 11 * S, t: 0, rot: 0 });
         sfx.thwip();
       }
       if (sp.t > 1.8) sp.state = 'up';
     } else { sp.y -= 110 * S * dt; if (sp.y < hudH - 10) sp.dead = true; }
-    if (mode === 'play' && ball.kicked && Math.hypot(ball.x - sp.x, ball.y - sp.y) < R + 12 * S) {
-      sp.dead = true; sfx.bonk();
-      burst(sp.x, sp.y, 14, ['#222', '#d36bff'], 220, 250, 4);
-      pop('SQUISH!', sp.x, sp.y - 30 * S, '#d36bff', 26);
+    for (const b of A) {
+      if (sp.dead) break;
+      if (mode === 'play' && b.kicked && Math.hypot(b.x - sp.x, b.y - sp.y) < R + 12 * S) {
+        sp.dead = true; sfx.bonk();
+        burst(sp.x, sp.y, 14, ['#222', '#d36bff'], 220, 250, 4);
+        pop('SQUISH!', sp.x, sp.y - 30 * S, '#d36bff', 26);
+      }
     }
   }
   spiders = spiders.filter(s => !s.dead);
@@ -1450,22 +1494,26 @@ function updateHazards(dt) {
   for (const d of dolls) {
     d.wob += dt * 4;
     if (mode !== 'play') continue;
+    let tgt = null, bd = 1e9;
+    for (const b of A) { if (b.gone || b.hidden) continue; const dd = Math.hypot(b.x - d.x, b.y - d.y); if (dd < bd) { bd = dd; tgt = b; } }
     let tx, ty;
-    if (hidden || ball.gone) {
+    if (!tgt) {
       if (!d.lost || Math.hypot(d.tx - d.x, d.ty - d.y) < 10) { d.tx = rand(30 * S, W - 30 * S); d.ty = rand(zoneTop, H - 30 * S); }
       d.lost = true; tx = d.tx; ty = d.ty;
-    } else { d.lost = false; tx = ball.x; ty = ball.y; }
+    } else { d.lost = false; tx = tgt.x; ty = tgt.y; }
     const dx = tx - d.x, dy = ty - d.y, n = Math.hypot(dx, dy) || 1;
     const sp = d.sp * (d.lost ? 0.6 : 1) * (0.55 + 0.45 * Math.abs(Math.sin(d.wob)));
     d.x += dx / n * sp * dt; d.y += dy / n * sp * dt;
     d.tilt = d.lost ? Math.sin(d.wob * 0.7) * 0.5 : 0.15 * Math.sin(d.wob * 2);
-    if (ball.gone) continue;
-    if (Math.hypot(ball.x - d.x, ball.y - d.y) < R + 14 * S) {
+    for (const b of A) {
+      if (d.dead) break;
+      if (b.gone || Math.hypot(b.x - d.x, b.y - d.y) >= R + 14 * S) continue;
+      use(b);
       if (ball.kicked) {
         d.dead = true; sfx.bonk();
         burst(d.x, d.y, 16, ['#f2dfd2', '#e98bb7'], 220, 250, 4);
         pop('BONK!', d.x, d.y - 30 * S, '#ff8fc7', 26);
-      } else if (!hidden && ball.inv <= 0) {
+      } else if (!ball.hidden && ball.inv <= 0) {
         d.dead = true; ball.inv = 1.6; sfx.doll();
         burst(d.x, d.y, 16, ['#f2dfd2', '#e98bb7'], 220, 250, 4);
         pop('MAMA!', d.x, d.y - 30 * S, '#ff8fc7', 30);
@@ -1474,34 +1522,51 @@ function updateHazards(dt) {
     }
   }
   dolls = dolls.filter(d => !d.dead);
+  use(P1);
 }
 
-/* ---------- input ---------- */
+/* ---------- input (one or two players, multi-touch) ---------- */
 function pos(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+const ballForPointer = id => actives().find(b => b.held && b.ptr.id === id);
 cv.addEventListener('pointerdown', e => {
-  if (mode === 'play' && ball.caged) { tapCage(); return; }
-  if (mode !== 'play' || ball.gone || ball.kicked || ball.stuck > 0) return;
-  const p = pos(e);
-  const d = Math.hypot(p.x - ball.x, p.y - ball.y);
-  if (d < R * 2.8) {
+  if (mode !== 'play') return;
+  const p = pos(e), A = actives();
+  const free = A.filter(b => !b.gone && !b.kicked && b.stuck <= 0 && !b.caged && !b.held);
+  let grab = null, gd = R * 2.8;
+  for (const b of free) { const d = Math.hypot(p.x - b.x, p.y - b.y); if (d < gd) { gd = d; grab = b; } }
+  if (grab) {
+    use(grab);
     ball.held = true; ptr.id = e.pointerId; ptr.x = p.x; ptr.y = p.y;
     ptr.samples = [{ x: p.x, y: p.y, t: performance.now() }];
     try { cv.setPointerCapture(e.pointerId); } catch (err) {}
-  } else if (p.y < ball.y - R * 1.5) {
+    use(P1);
+    return;
+  }
+  let near = null, nd = 1e9;
+  for (const b of A) { if (b.gone) continue; const d = Math.hypot(p.x - b.x, p.y - b.y); if (d < nd) { nd = d; near = b; } }
+  if (near && near.caged) { use(near); tapCage(); use(P1); return; }
+  let shooter = null, sd = 1e9;
+  for (const b of free) { if (p.y >= b.y - R * 1.5) continue; const d = Math.hypot(p.x - b.x, p.y - b.y); if (d < sd) { sd = d; shooter = b; } }
+  if (shooter) {
+    use(shooter);
     const dx = p.x - ball.x, dy = p.y - ball.y, n = Math.hypot(dx, dy), sp = 780 * S;
     kickWith(dx / n * sp, dy / n * sp);
     aimMark = { x: p.x, y: p.y, t: 0 };
+    use(P1);
   }
 });
 cv.addEventListener('pointermove', e => {
-  if (!ball.held || e.pointerId !== ptr.id) return;
-  const p = pos(e), now = performance.now();
-  ptr.x = p.x; ptr.y = p.y;
-  ptr.samples.push({ x: p.x, y: p.y, t: now });
-  while (ptr.samples.length > 2 && now - ptr.samples[0].t > 120) ptr.samples.shift();
+  const b = ballForPointer(e.pointerId);
+  if (!b) return;
+  const p = pos(e), now = performance.now(), q = b.ptr;
+  q.x = p.x; q.y = p.y;
+  q.samples.push({ x: p.x, y: p.y, t: now });
+  while (q.samples.length > 2 && now - q.samples[0].t > 120) q.samples.shift();
 });
 function release(e) {
-  if (!ball.held || e.pointerId !== ptr.id) return;
+  const bb = ballForPointer(e.pointerId);
+  if (!bb) return;
+  use(bb);
   ball.held = false; ptr.id = null;
   const now = performance.now(), sm = ptr.samples.filter(s => now - s.t < 110);
   if (sm.length >= 2) {
@@ -1512,46 +1577,14 @@ function release(e) {
       kickWith(vx * k, vy * k);
     }
   }
+  use(P1);
 }
 cv.addEventListener('pointerup', release);
 cv.addEventListener('pointercancel', release);
 
 /* ---------- update ---------- */
-function update(dt) {
-  time += dt;
-  shake = Math.max(0, shake - dt);
-  flashT = Math.max(0, flashT - dt);
-  for (const tm of timers.slice()) { tm.t -= dt; if (tm.t <= 0 && !tm.done) { tm.done = true; tm.fn(); } }
-  timers = timers.filter(tm => !tm.done);
-  for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.g * dt; p.vx *= Math.exp(-1.5 * dt); p.life -= dt; }
-  parts = parts.filter(p => p.life > 0);
-  for (const p of pops) p.t += dt;
-  pops = pops.filter(p => p.t < p.life);
-  if (aimMark) { aimMark.t += dt; if (aimMark.t > 0.5) aimMark = null; }
-  if (mode === 'ending') { updateEnding(dt); return; }
-  if (mode === 'credits') return;
-
+function ballStep(dt) {
   const g = goalie;
-  g.mouth = Math.max(0, g.mouth - dt * 3);
-  g.sulk = Math.max(0, g.sulk - dt * 0.6);
-
-  // goalie movement
-  let target;
-  if (mode === 'play' && ball.kicked && !ball.out && ball.vy < 0) {
-    const t = (g.y - ball.y) / ball.vy;
-    target = ball.x + ball.vx * Math.max(0, t);
-  } else if (mode === 'play' || mode === 'between') {
-    target = ball.x + Math.sin(time * 1.3) * goalW * 0.16;
-  } else {
-    target = W / 2 + Math.sin(time * 0.9) * goalW * 0.3;
-  }
-  target = clamp(target, goalL + g.w * 0.32, goalR - g.w * 0.32);
-  const gs = (70 + Math.min(level, 14) * 16) * S * (ball.kicked ? 1.2 : 1) * (mode === 'goal' ? 0.2 : 1);
-  g.x += clamp(target - g.x, -gs * dt, gs * dt);
-
-  if (mode === 'between') { betweenT -= dt; if (betweenT <= 0) mode = 'play'; }
-
-  // ball
   if (ball.held) {
     const k = (ball.soaked > 0 || ball.daze > 0) ? 5 : ball.inRiver ? 7 : ball.char === 'man' ? 9 : 20;
     const wob = ball.poison > 0 ? 16 * S : 0;
@@ -1571,7 +1604,7 @@ function update(dt) {
     if (mode !== 'goal') collideCars();
   }
   ball.daze = Math.max(0, ball.daze - dt);
-  ball.inRiver = !!river && !ball.kicked && !ball.gone && mode === 'play' && Math.abs(ball.y - river.y) < river.h / 2 && ball.elem !== 'water' && ball.elem !== 'steam';
+  ball.inRiver = !!river && !ball.kicked && !ball.gone && !ball.caged && mode === 'play' && Math.abs(ball.y - river.y) < river.h / 2 && ball.elem !== 'water' && ball.elem !== 'steam';
   if (ball.inRiver) ball.x = Math.min(W - R, ball.x + 45 * S * dt);
   if (ball.char === 'football' && ball.kicked && !ball.out && mode === 'play') {
     const sp = Math.hypot(ball.vx, ball.vy) || 1, wob = Math.sin(time * 9) * 340 * S;
@@ -1581,11 +1614,12 @@ function update(dt) {
     ball.charT -= dt;
     if (ball.charT <= 0) {
       ball.char = 'ball'; sfx.morph();
-      pop('BACK TO A BALL!', W / 2, H * 0.58, '#ffffff', 26);
+      pop((twoP ? (ball.id ? 'P2 ' : 'P1 ') : '') + 'BACK TO A BALL!', W / 2, H * 0.58, '#ffffff', 26);
       if (!ball.gone) burst(ball.x, ball.y, 16, ['#ffffff', '#ffd23f'], 200, 0, 4);
     }
   }
-  hidden = dark && !ball.kicked && !ball.gone && beds.some(b => Math.abs(ball.x - b.x) < b.w / 2 && Math.abs(ball.y - b.y) < b.h / 2);
+  ball.hidden = dark && !ball.kicked && !ball.gone && beds.some(b => Math.abs(ball.x - b.x) < b.w / 2 && Math.abs(ball.y - b.y) < b.h / 2);
+  hidden = ball.hidden;
   ball.soaked = Math.max(0, ball.soaked - dt);
   ball.inv = Math.max(0, ball.inv - dt);
   ball.dirty = Math.max(0, ball.dirty - dt);
@@ -1598,10 +1632,88 @@ function update(dt) {
     } else if (Math.hypot(ball.vx, ball.vy) < 80 * S) ball.kicked = false;
   }
 
-  // goalie fires
+  // stuck in a poop puddle, then a tiny pee drop
+  if (ball.stuck > 0) {
+    ball.stuck -= dt; ball.vx = ball.vy = 0;
+    if (ball.stuck <= 0) {
+      ball.char = 'pee'; ball.charT = 10; sfx.morph();
+      burst(ball.x, ball.y, 16, ['#ffe14d', '#fff6b0'], 200, 0, 4);
+      pop('TINY PEE DROP!', W / 2, H * 0.58, '#ffe14d', 28);
+    }
+  }
+  if (ball.caged && ball.gone) ball.caged = null;
+  // fart machine toots
+  if (ball.char === 'fart' && mode === 'play' && !ball.gone) {
+    ball.fartT -= dt;
+    if (ball.fartT <= 0) {
+      ball.fartT = rand(1.2, 2.2); sfx.fart(0.5);
+      addGas(ball.x + rand(-6, 6) * S, ball.y + R * 0.5, 13 * S);
+      if (Math.random() < 0.45) pop(['TOOT!', 'PFFT!', 'BRAAP!'][Math.floor(Math.random() * 3)], ball.x, ball.y - 36 * S, '#9be564', 20);
+    }
+    if (ball.kicked && ball.fartShot && Math.random() < 0.35) addGas(ball.x, ball.y, 9 * S);
+  }
+  // poison wobble
+  if (ball.poison > 0) {
+    ball.poison -= dt;
+    if (!ball.gone && Math.random() < 0.4) parts.push({ x: ball.x + rand(-R, R) * 0.6, y: ball.y, vx: rand(-10, 10) * S, vy: -rand(20, 40) * S, g: 0, life: 0.6, max: 0.6, c: '#7dff6a', s: 3 * S });
+  }
+  // fire / water power timer
+  if (ball.elem && (mode === 'play' || mode === 'between')) {
+    ball.elemT -= dt;
+    if (!ball.gone && Math.random() < 0.6) {
+      const c = ball.elem === 'fire' ? ['#ff8a3d', '#ffd23f', '#ff4a1f'] : ball.elem === 'water' ? ['#4cc9ff', '#bfefff'] : ['#ff6a3d', '#4cc9ff', '#ffffff'];
+      parts.push({ x: ball.x + rand(-R, R) * 0.7, y: ball.y + rand(-R, R) * 0.5, vx: rand(-20, 20) * S, vy: (ball.elem === 'water' ? rand(10, 40) : rand(-70, -30)) * S, g: 0, life: rand(0.3, 0.6), max: 0.6, c: c[Math.floor(Math.random() * c.length)], s: rand(2.5, 5) * S });
+    }
+    if (ball.elemT <= 0) { ball.elem = null; sfx.morph(); pop('POWER OFF', W / 2, H * 0.58, '#c9d3cc', 24); }
+  }
+}
+function update(dt) {
+  time += dt;
+  shake = Math.max(0, shake - dt);
+  flashT = Math.max(0, flashT - dt);
+  for (const tm of timers.slice()) { tm.t -= dt; if (tm.t <= 0 && !tm.done) { tm.done = true; tm.fn(); } }
+  timers = timers.filter(tm => !tm.done);
+  for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.g * dt; p.vx *= Math.exp(-1.5 * dt); p.life -= dt; }
+  parts = parts.filter(p => p.life > 0);
+  for (const p of pops) p.t += dt;
+  pops = pops.filter(p => p.t < p.life);
+  if (aimMark) { aimMark.t += dt; if (aimMark.t > 0.5) aimMark = null; }
+  use(P1);
+  if (mode === 'ending') { updateEnding(dt); return; }
+  if (mode === 'credits') return;
+
+  const g = goalie;
+  g.mouth = Math.max(0, g.mouth - dt * 3);
+  g.sulk = Math.max(0, g.sulk - dt * 0.6);
+
+  // goalie movement: chase a ball that's been kicked, otherwise watch the players
+  const kb = actives().find(b => b.kicked && !b.out && !b.gone && b.vy < 0);
+  use(kb || (twoP ? balls[Math.floor(time / 3) % 2] : P1));
+  let target;
+  if (mode === 'play' && ball.kicked && !ball.out && ball.vy < 0) {
+    const t = (g.y - ball.y) / ball.vy;
+    target = ball.x + ball.vx * Math.max(0, t);
+  } else if (mode === 'play' || mode === 'between') {
+    target = ball.x + Math.sin(time * 1.3) * goalW * 0.16;
+  } else {
+    target = W / 2 + Math.sin(time * 0.9) * goalW * 0.3;
+  }
+  target = clamp(target, goalL + g.w * 0.32, goalR - g.w * 0.32);
+  const gs = (70 + Math.min(level, 14) * 16) * S * (ball.kicked ? 1.2 : 1) * (mode === 'goal' ? 0.2 : 1);
+  g.x += clamp(target - g.x, -gs * dt, gs * dt);
+
+  if (mode === 'between') { betweenT -= dt; if (betweenT <= 0) mode = 'play'; }
+
+  for (const b of actives()) { use(b); ballStep(dt); }
+  use(P1);
+
+  // goalie fires at one of the players
   if (mode === 'play') {
     g.cd -= dt;
-    if (g.cd <= 0 && !ball.gone && !ball.kicked && !boss) fire();
+    if (g.cd <= 0 && !boss) {
+      const ready = actives().filter(b => !b.gone && !b.kicked);
+      if (ready.length) { use(ready[Math.floor(Math.random() * ready.length)]); fire(); use(P1); }
+    }
   }
 
   // shots
@@ -1617,7 +1729,10 @@ function update(dt) {
       burst(s.x, s.y, 6, [s.type === 'poop' ? '#8a5427' : s.type === 'web' ? '#ffffff' : '#4cc9ff'], 90, 0, 3);
       continue;
     }
-    if (mode === 'play' && !ball.gone && !ball.kicked && !hidden && Math.hypot(s.x - ball.x, s.y - ball.y) < R + s.r * 0.8) {
+    for (const pb of actives()) {
+      if (s.dead) break;
+      use(pb);
+      if (!(mode === 'play' && !ball.gone && !ball.kicked && !hidden && Math.hypot(s.x - ball.x, s.y - ball.y) < R + s.r * 0.8)) continue;
       const el = ball.elem;
       if (s.type === 'water' && (el === 'water' || el === 'steam')) {
         s.dead = true; sfx.gulp(); pop('GULP!', ball.x, ball.y - 40 * S, '#4cc9ff', 24);
@@ -1629,7 +1744,7 @@ function update(dt) {
         burst(s.x, s.y, 12, ['#ff8a3d', '#ffd23f', '#555555'], 180, -80, 4);
         continue;
       }
-      if (s.type === 'water' && el === 'fire') { ball.elem = null; sfx.sizzle(); later(0.3, () => pop('FIRE OUT!', ball.x, ball.y - 70 * S, '#c9d3cc', 22)); }
+      if (s.type === 'water' && el === 'fire') { ball.elem = null; sfx.sizzle(); const fb = ball; later(0.3, () => pop('FIRE OUT!', fb.x, fb.y - 70 * S, '#c9d3cc', 22)); }
       if (s.type === 'fireball') {
         s.dead = true;
         if (el === 'water' || el === 'steam') { sfx.sizzle(); pop('PSSST!', ball.x, ball.y - 40 * S, '#bfefff', 24); }
@@ -1669,6 +1784,7 @@ function update(dt) {
     if (s.y > H + 40 || s.x < -40 || s.x > W + 40 || s.y < -40) s.dead = true;
   }
   shots = shots.filter(s => !s.dead);
+  use(P1);
 
   // lights-out level: zombies + lightning
   updateHazards(dt);
@@ -1681,24 +1797,29 @@ function update(dt) {
   for (const z of zombies) {
     z.wob += dt * 5;
     if (mode !== 'play') continue;
-    const dx = ball.x - z.x, dy = ball.y - z.y, n = Math.hypot(dx, dy) || 1;
+    const tb = nearestBall(z.x, z.y);
+    const dx = tb.x - z.x, dy = tb.y - z.y, n = Math.hypot(dx, dy) || 1;
     z.face = dx >= 0 ? 1 : -1;
     z.x += dx / n * z.sp * dt * (0.6 + 0.4 * Math.abs(Math.sin(z.wob * 0.5)));
     z.y += dy / n * z.sp * dt * (0.6 + 0.4 * Math.abs(Math.sin(z.wob * 0.5)));
-    if (ball.gone) continue;
-    const hit = n < R + 14 * S;
-    if (hit && ball.kicked) {
-      z.dead = true; sfx.bonk();
-      burst(z.x, z.y, 16, ['#efe9da', '#cfc6ae'], 220, 250, 4);
-      pop('BONK!', z.x, z.y - 30 * S, '#7dff6a', 26);
-    } else if (hit && !hidden && ball.inv <= 0) {
-      z.dead = true; ball.inv = 1.6; sfx.groan(); sfx.splat();
-      burst(z.x, z.y, 16, ['#efe9da', '#7dff6a'], 220, 250, 4);
-      pop('GOTCHA!', z.x, z.y - 30 * S, '#7dff6a', 28);
-      loseLife();
+    for (const b of actives()) {
+      if (z.dead) break;
+      if (b.gone || Math.hypot(b.x - z.x, b.y - z.y) >= R + 14 * S) continue;
+      use(b);
+      if (ball.kicked) {
+        z.dead = true; sfx.bonk();
+        burst(z.x, z.y, 16, ['#efe9da', '#cfc6ae'], 220, 250, 4);
+        pop('BONK!', z.x, z.y - 30 * S, '#7dff6a', 26);
+      } else if (!ball.hidden && ball.inv <= 0) {
+        z.dead = true; ball.inv = 1.6; sfx.groan(); sfx.splat();
+        burst(z.x, z.y, 16, ['#efe9da', '#7dff6a'], 220, 250, 4);
+        pop('GOTCHA!', z.x, z.y - 30 * S, '#7dff6a', 28);
+        loseLife();
+      }
     }
   }
   zombies = zombies.filter(z => !z.dead);
+  use(P1);
 }
 
 /* ---------- drawing ---------- */
@@ -1802,6 +1923,39 @@ function pent(cx, cy, r, rot) {
   for (let i = 0; i < 5; i++) { const a = rot + i * TAU / 5; const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
   ctx.closePath(); ctx.fill();
 }
+function drawBalls() {
+  for (const b of actives()) {
+    if (b.gone) continue;
+    use(b);
+    if (twoP) {
+      const col = b.id ? '#ffb020' : '#4cc9ff';
+      ctx.strokeStyle = col; ctx.lineWidth = 3; ell(b.x, b.y + R * 0.9, R * 1.1, R * 0.38); ctx.stroke();
+    }
+    drawBall();
+    if (twoP) text(b.id ? 'P2' : 'P1', b.x, b.y - R - 14 * S, Math.round(12 * S), b.id ? '#ffb020' : '#4cc9ff');
+  }
+  use(P1);
+}
+let darkCv = null;
+function drawDarkness(a) {
+  const dpr = cv.width / W;
+  if (!darkCv) darkCv = document.createElement('canvas');
+  if (darkCv.width !== cv.width || darkCv.height !== cv.height) { darkCv.width = cv.width; darkCv.height = cv.height; }
+  const x = darkCv.getContext('2d');
+  x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, darkCv.width, darkCv.height);
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  x.fillStyle = `rgba(1,3,2,${a})`; x.fillRect(0, 0, W, H);
+  x.globalCompositeOperation = 'destination-out';
+  const lights = actives().filter(b => !b.gone).map(b => ({ x: b.x, y: b.y }));
+  if (!lights.length) lights.push({ x: W / 2, y: H * 0.8 });
+  for (const l of lights) {
+    const g = x.createRadialGradient(l.x, l.y, 55 * S, l.x, l.y, 175 * S);
+    g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+  }
+  x.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(darkCv, 0, 0); ctx.restore();
+}
 function drawBall() {
   const { x, y, spin } = ball;
   ctx.save(); ctx.translate(x, y);
@@ -1892,9 +2046,12 @@ function drawHUD() {
     ell(14 + i * 9, hudH - 6, 2.6, 2.6); ctx.fill();
   }
   const tags = [];
-  if (ball.char !== 'ball') tags.push(({ man: 'MAN ', football: 'FOOTBALL MAN ', pee: 'PEE DROP ', fart: 'FART MACHINE ' })[ball.char] + Math.ceil(Math.max(0, ball.charT)));
-  if (ball.elem) tags.push((ball.elem === 'fire' ? 'FIRE ' : ball.elem === 'water' ? 'WATER ' : 'FIRE+WATER ') + Math.ceil(Math.max(0, ball.elemT)));
-  if (tags.length) text(tags.join(' · '), W / 2, hudH - 7, 10, ball.elem === 'fire' ? '#ff8a3d' : ball.elem ? '#7fd1ff' : '#ffb347', undefined, false);
+  for (const b of actives()) {
+    const pre = twoP ? (b.id ? 'P2 ' : 'P1 ') : '';
+    if (b.char !== 'ball') tags.push(pre + ({ man: 'MAN ', football: 'FOOTBALL MAN ', pee: 'PEE DROP ', fart: 'FART MACHINE ' })[b.char] + Math.ceil(Math.max(0, b.charT)));
+    if (b.elem) tags.push(pre + (b.elem === 'fire' ? 'FIRE ' : b.elem === 'water' ? 'WATER ' : 'FIRE+WATER ') + Math.ceil(Math.max(0, b.elemT)));
+  }
+  if (tags.length) text(tags.join(' · '), W / 2, hudH - 7, 10, '#ffd88a', undefined, false);
   text('LEVEL ' + level, W / 2, hudH / 2 + 1, 17, dark ? '#ff6b6b' : '#eef3f6', undefined, false);
   // goal counter (left of mute button)
   const gx = W - 92;
@@ -1912,7 +2069,7 @@ function render() {
   drawRiver();
   if (jungleA > 0) { ctx.fillStyle = `rgba(12,48,18,${0.45 * jungleA})`; ctx.fillRect(0, goalLineY, W, H - goalLineY); }
   drawNetBack();
-  if (mode === 'goal' && !ball.gone) drawBall();
+  if (mode === 'goal') drawBalls();
   drawNetFront();
   for (const s of stains) drawStain(s);
   for (const p of puddles) drawPuddle(p);
@@ -1926,12 +2083,12 @@ function render() {
   for (const f of feet) drawFootShadow(f);
   for (const c of cages) drawCageShadow(c);
   if (boss) drawBoss(boss); else drawToilet(goalie);
-  if (mode !== 'goal' && !ball.gone) drawBall();
+  if (mode !== 'goal') drawBalls();
   for (const b of beds) drawBed(b);
   for (const o of orbs) drawOrb(o);
   for (const c of cages) drawCage(c);
   for (const g of gas) drawGas(g);
-  if (hidden && mode === 'play') text('HIDING', ball.x, ball.y - 34 * S, Math.round(13 * S), '#c9b6ff');
+  for (const b of actives()) if (b.hidden && mode === 'play') text('HIDING', b.x, b.y - 34 * S, Math.round(13 * S), '#c9b6ff');
   for (const z of zombies) drawZombie(z, false);
   for (const d of dolls) drawDoll(d, false);
   for (const h of huskies) drawHusky(h);
@@ -1954,10 +2111,7 @@ function render() {
   if (dark && mode !== 'title' && mode !== 'over') {
     let a = flashT > 0 ? 0.2 : 0.94;
     if (mode === 'between' && Math.random() < 0.12) a = 0.5;
-    const lx = ball.gone ? W / 2 : ball.x, ly = ball.gone ? H * 0.8 : ball.y;
-    const gr = ctx.createRadialGradient(lx, ly, 55 * S, lx, ly, 175 * S);
-    gr.addColorStop(0, 'rgba(1,3,2,0)'); gr.addColorStop(1, `rgba(1,3,2,${a})`);
-    ctx.fillStyle = gr; ctx.fillRect(-30, -30, W + 60, H + 60);
+    drawDarkness(a);
     // glowing things in the dark
     ctx.save(); ctx.translate(goalie.x, goalie.y); eyes(goalie, goalie.w / 100, true); ctx.restore();
     for (const z of zombies) drawZombie(z, true);
@@ -2054,7 +2208,7 @@ function drawCar(c) {
 }
 function drawBed(b) {
   const { x, y, w, h } = b;
-  const under = hidden && Math.abs(ball.x - x) < w / 2 && Math.abs(ball.y - y) < h / 2;
+  const under = actives().some(bb => bb.hidden && Math.abs(bb.x - x) < w / 2 && Math.abs(bb.y - y) < h / 2);
   ctx.save(); ctx.translate(x, y); if (under) ctx.globalAlpha = 0.72;
   ctx.fillStyle = 'rgba(0,0,0,0.35)'; rr(-w / 2 + 4, -h / 2 + 5, w, h, 6 * S); ctx.fill();
   ctx.fillStyle = '#5a3b26'; rr(-w / 2 - 3 * S, -h / 2 - 3 * S, w + 6 * S, h + 6 * S, 6 * S); ctx.fill();
@@ -2736,7 +2890,8 @@ function start(data) {
   if (!reduceMotion && !(data.level > 1)) showGate();
   if (data.muted) setMute(true);
   resize(); resetBall();
-  document.getElementById('play').addEventListener('click', () => { initAudio(); newGame(data.level > 1 && data.lives > 0 ? data : null); data = {}; });
+  document.getElementById('play').addEventListener('click', () => { initAudio(); twoP = false; newGame(data.level > 1 && data.lives > 0 ? data : null); data = {}; });
+  document.getElementById('play2').addEventListener('click', () => { initAudio(); twoP = true; newGame(null); data = {}; });
   document.getElementById('again').addEventListener('click', () => { initAudio(); newGame(null); });
   try { document.getElementById('watch-ending').hidden = localStorage.getItem('toilet-goalie-won') !== '1'; } catch (e) {}
   if (document.fonts && document.fonts.load) { document.fonts.load('20px Bungee'); document.fonts.load("20px 'Special Elite'"); }
