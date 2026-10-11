@@ -35,6 +35,6 @@ Kayaks poke you (lose a roll), but kick the ball into one to flip it for +1. Syn
 
 Huskies bring fire: flames burst up where they land and trail behind them. Touching fire costs a roll (water balls put it out). Poop that misses you lands as a poop puddle; step in one and you get stuck, then turn into a **tiny pee drop** for 10 seconds.
 
-A husky bite turns you into **Man** (slower) or **Football Man** (wobbly shots) for 10 seconds.
+A husky bite turns you into **Man** (slower) or **Football Man** (wobbly shots) for 10 seconds. Whenever you're a guy, the field turns into a **jungle** with vines, bongo drums and poisonous mushrooms: touching one costs a roll and makes you woozy, but kicking the ball into one squishes it for +1.
 
 Everything (graphics, music, sound effects) is drawn and synthesized in code. No image or audio files.
