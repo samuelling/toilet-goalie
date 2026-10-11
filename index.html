@@ -39,6 +39,7 @@ h1 span { color: var(--gold); display: block; }
 .d-ball { background: radial-gradient(circle at 35% 35%, #fff 0 40%, #ddd 41%); box-shadow: inset -3px -3px 0 rgba(0,0,0,.25); }
 .d-water { background: var(--water); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; }
 .d-poop { background: var(--poop); border-radius: 45% 45% 40% 40%; }
+.d-orb { background: linear-gradient(90deg, #ff6a1f 50%, #2f9be8 50%); box-shadow: 0 0 10px rgba(220, 120, 255, 0.8); }
 .d-car { background: #d8423a; border-radius: 5px; width: 14px; height: 24px; }
 .d-foot { background: #d83b2e; border-radius: 50%; width: 16px; height: 24px; box-shadow: 0 0 0 3px #f2f2f2; }
 .d-dark { background: #000; box-shadow: 0 0 0 2px var(--danger), 0 0 12px var(--danger); }
@@ -76,7 +77,7 @@ h1 span { color: var(--gold); display: block; }
 #crawl-start .cs-note { font-size: 0.95rem; font-weight: 600; color: #b9c3bd; }
 @keyframes cs-pulse { 50% { box-shadow: 0 0 22px rgba(255, 210, 63, 0.55); } }
 @media (prefers-reduced-motion: reduce) { #crawl-start .cs-go { animation: none; } }
-#skip { position: absolute; right: 12px; bottom: 14px; z-index: 2; font-family: var(--display); font-size: 1rem; padding: 10px 16px 8px; border-radius: 10px; border: 2px solid var(--gold); background: rgba(0, 0, 0, 0.6); color: var(--gold); cursor: pointer; }
+#skip { position: absolute; right: 12px; bottom: 14px; z-index: 4; font-family: var(--display); font-size: 1rem; padding: 10px 16px 8px; border-radius: 10px; border: 2px solid var(--gold); background: rgba(0, 0, 0, 0.6); color: var(--gold); cursor: pointer; }
 #skip:focus-visible, .linkbtn:focus-visible { outline: 3px solid var(--water); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { #crawl-logo.go { animation-duration: 0.01s; } }
 
@@ -100,8 +101,9 @@ h1 span { color: var(--gold); display: block; }
     <ul class="how">
       <li><i class="dot d-ball"></i><span><b>Drag</b> the ball to dodge. <b>Flick</b> it, or <b>tap</b> where you want it to go.</span></li>
       <li><i class="dot d-car"></i><span><b>Bounce</b> off cars for points. Every <b>5 points</b> wins back a lost roll!</span></li>
+      <li><i class="dot d-orb"></i><span>Grab glowing orbs to become a <b>Fire</b>, <b>Water</b>, or <b>Fire &amp; Water</b> ball!</span></li>
       <li><i class="dot d-poop"></i><span>Poop costs a toilet paper roll. So does getting caught!</span></li>
-      <li><i class="dot d-foot"></i><span>Daytime: giant feet, football cannons, Venus fly traps, and paint drops with huskies inside. A husky bite turns you into someone else!</span></li>
+      <li><i class="dot d-foot"></i><span>Daytime: giants, cannons, fly traps, husky paint drops, poking kayaks and synthesizers. A husky bite turns you into someone else!</span></li>
       <li><i class="dot d-dark"></i><span>Dark: hide under beds from the dolls. If a spider web gets you, you <b>start over at zero</b>!</span></li>
     </ul>
     <button class="btn" id="play" type="button">PLAY</button>
@@ -127,6 +129,7 @@ h1 span { color: var(--gold); display: block; }
         <p>Everett says: “Can you add spiders? If they web-shoot you when it’s dark, you have to start over again with zero points. And there are baby dolls, and you gotta hide under beds. And there are giants, and during the daytime you don’t want to get hit by their feet.”</p>
         <p>“And there’s smoke coming out of a Resident Evil car, because there are cars all around, and you want to bounce the ball off of them. That gets you another point. And if you bounce one in, you get an extra point. And there are football cannons.”</p>
         <p>Everett says: “I want Venus flytraps that can eat the ball. And paint drops that you don’t want to get hit by. They have huskies in them, and you don’t want to get bitten. If you get bitten, you switch into another character, like a man or a football man. Also, I’m thinking we add a way to earn points to get our lost lives back.”</p>
+        <p>Everett says: “What if sometimes the soccer ball is water, and fire, and fire and water? Later on, there are kayaks that poke you. And there are synthesizers.”</p>
         <p>And so the game was made. Now it is up to YOU to get the ball past the toilet....</p>
       </div>
     </div>
@@ -150,10 +153,11 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let W = 400, H = 700, S = 1, hudH = 50, goalTop = 58, goalLineY = 120, goalW = 260, goalL = 70, goalR = 330, R = 18, zoneTop = 350;
 let mode = 'title', lives = 3, score = 0, level = 1, dark = false, time = 0, shake = 0, flashT = 0, lightningT = 6, betweenT = 0, best = 0;
 const goalie = { x: 200, y: 160, w: 90, cd: 1.5, mouth: 0, sulk: 0 };
-const ball = { x: 200, y: 600, vx: 0, vy: 0, held: false, kicked: false, gone: false, out: false, soaked: 0, inv: 0, dirty: 0, spin: 0, daze: 0, char: 'ball', charT: 0 };
+const ball = { x: 200, y: 600, vx: 0, vy: 0, held: false, kicked: false, gone: false, out: false, soaked: 0, inv: 0, dirty: 0, spin: 0, daze: 0, char: 'ball', charT: 0, elem: null, elemT: 0, inRiver: false, ringPid: '' };
 let shots = [], zombies = [], parts = [], pops = [], timers = [], zombieT = 2, aimMark = null;
 let cars = [], beds = [], cannons = [], spiders = [], dolls = [], feet = [], smoke = [], feat = {};
 let traps = [], paints = [], huskies = [], stains = [], paintT = 2, lifePts = 0;
+let orbs = [], synths = [], kayaks = [], river = null, orbT = 6, kayakT = 2;
 let giantT = 3, cannonT = 3, spiderT = 3, dollT = 2, smokeT = 0, cannonTurn = 0, webbedT = 0, bounced = false, hidden = false;
 const ptr = { x: 0, y: 0, id: null, samples: [] };
 
@@ -182,17 +186,21 @@ function resize() {
 window.addEventListener('resize', resize);
 
 function features() {
-  const f = { giants: false, cannons: false, traps: false, paint: false, dolls: false, spiders: false, zombies: false };
+  const f = { giants: false, cannons: false, traps: false, paint: false, kayaks: false, synths: false, dolls: false, spiders: false, zombies: false };
   if (level % 3 === 0) {
     const k = level / 3;
     if (k === 1) f.dolls = true;
     else if (k === 2) f.spiders = true;
     else { f.zombies = true; f.dolls = true; f.spiders = true; }
   } else {
-    f.giants = level === 2 || level === 5 || level >= 7;
-    f.traps = level === 2 || level === 5 || level >= 7;
-    f.cannons = level === 4 || level >= 7;
-    f.paint = level === 4 || level === 5 || level >= 7;
+    const L = level;
+    if (L <= 5) {
+      f.giants = L === 2 || L === 5; f.traps = L === 2 || L === 5;
+      f.cannons = L === 4; f.paint = L === 4 || L === 5;
+    } else if (L === 7) { f.kayaks = true; f.synths = true; }
+    else if (L === 8) { f.kayaks = true; f.synths = true; f.cannons = true; f.paint = true; }
+    else if (L % 2 === 0) { f.kayaks = true; f.giants = true; f.traps = true; f.paint = true; }
+    else { f.kayaks = true; f.synths = true; f.cannons = true; f.giants = true; }
   }
   return f;
 }
@@ -207,6 +215,8 @@ function introLine() {
   if (feat.traps) L.push('VENUS FLY TRAPS!');
   if (feat.cannons) L.push('FOOTBALL CANNONS!');
   if (feat.paint) L.push('PAINT DROP HUSKIES!');
+  if (feat.kayaks) L.push('KAYAKS ON THE RIVER!');
+  if (feat.synths) L.push('SYNTHESIZERS!');
   if (!L.length) L.push('BOUNCE OFF CARS!');
   return L;
 }
@@ -220,10 +230,15 @@ function buildScenery() {
     { x: W * 0.22, y: H * 0.64, w: 80 * S, h: 52 * S, webs: 0 },
     { x: W * 0.78, y: H * 0.88 - 26 * S, w: 80 * S, h: 52 * S, webs: 0 },
   ] : [];
+  river = feat.kayaks ? { y: H * 0.62, h: 56 * S } : null;
+  synths = feat.synths ? [
+    { id: 'a', x: W * 0.33, y: H * 0.3, w: 84 * S, h: 30 * S, synth: true, hit: false, flash: 0, ring: -1, pulseT: 1.5, pid: 0, key: 0 },
+    { id: 'b', x: W * 0.67, y: H * 0.42, w: 84 * S, h: 30 * S, synth: true, hit: false, flash: 0, ring: -1, pulseT: 3, pid: 0, key: 0 },
+  ] : [];
   const odd = level % 2 === 1;
   traps = feat.traps ? [
     { x: W * (odd ? 0.38 : 0.62), y: H * 0.4, r: 24 * S, state: 'open', t: 0, open: 1, ate: false },
-    { x: W * (odd ? 0.78 : 0.22), y: H * 0.68, r: 24 * S, state: 'open', t: 0, open: 1, ate: false },
+    { x: W * (odd ? 0.78 : 0.22), y: H * (feat.kayaks ? 0.78 : 0.68), r: 24 * S, state: 'open', t: 0, open: 1, ate: false },
   ] : [];
   cannons = feat.cannons ? [
     { x: 0, y: H * 0.6, side: 1, ang: 0, flash: 0 },
@@ -284,7 +299,7 @@ function sched() {
   if (!ac) return;
   if (nextT < ac.currentTime - 0.2) nextT = ac.currentTime + 0.05;
   while (nextT < ac.currentTime + 0.15) {
-    if (track === 'rock') rockStep(stepN, nextT); else if (track === 'creepy') creepStep(stepN, nextT);
+    if (track === 'rock') rockStep(stepN, nextT); else if (track === 'creepy') creepStep(stepN, nextT); else if (track === 'synth') synthStep(stepN, nextT);
     nextT += SX; stepN = (stepN + 1) % 32; if (stepN === 0) bar++;
   }
 }
@@ -339,6 +354,29 @@ function creepStep(step, t) {
     const m = CREEP[Math.floor(Math.random() * CREEP.length)];
     toneAt(t, 'sine', mtof(m), null, 1.8, 0.09, musicBus);
     toneAt(t, 'sine', mtof(m) * 2.01, null, 0.9, 0.025, musicBus);
+  }
+}
+const SYN_PROG = [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]];
+function arpNote(t, m, dur) {
+  const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+  o.type = 'sawtooth'; o.frequency.value = mtof(m);
+  const cut = 1000 + 700 * Math.sin(t * 0.6);
+  f.type = 'lowpass'; f.Q.value = 8;
+  f.frequency.setValueAtTime(cut * 3, t); f.frequency.exponentialRampToValueAtTime(cut, t + dur);
+  env(g, t, 0.07, dur + 0.05);
+  o.connect(f); f.connect(g); g.connect(musicBus); o.start(t); o.stop(t + dur + 0.1);
+}
+function synthStep(step, t) {
+  const s = step % 16, ch = SYN_PROG[(bar * 2 + (step >= 16 ? 1 : 0)) % 4];
+  if (s % 4 === 0) drumKick(t, 0.9);
+  if (s === 4 || s === 12) noiseAt(t, 0.2, 'bandpass', 1800, null, 0.5, musicBus, 0.7);
+  noiseAt(t, 0.03, 'highpass', 8000, null, s % 2 ? 0.04 : 0.07, musicBus);
+  const pat = [0, 1, 2, 1, 0, 1, 2, 3], p = pat[s % 8];
+  arpNote(t, ch[p % 3] + 12 + (p === 3 ? 12 : 0), SX * 0.9);
+  if (s % 2 === 0) {
+    const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = 'square'; o.frequency.value = mtof(ch[0] - 24); f.type = 'lowpass'; f.frequency.value = 420;
+    env(g, t, 0.16, SX * 1.8); o.connect(f); f.connect(g); g.connect(musicBus); o.start(t); o.stop(t + SX * 2);
   }
 }
 function startDrone() {
@@ -408,6 +446,17 @@ const sfx = {
   bark() { this.go(t => { [0, 0.2].forEach(d => { noiseAt(t + d, 0.12, 'bandpass', 700, null, 0.6, null, 2); toneAt(t + d, 'sawtooth', 260, 150, 0.12, 0.15); }); }); },
   yip() { this.go(t => { toneAt(t, 'sine', 1300, 700, 0.15, 0.25); }); },
   morph() { this.go(t => { [60, 64, 67, 72, 76].forEach((m, i) => toneAt(t + i * 0.05, 'triangle', mtof(m), null, 0.18, 0.15)); }); },
+  bleep() { this.go(t => { const m = [69, 72, 74, 76, 79, 81, 84][Math.floor(Math.random() * 7)]; toneAt(t, 'square', mtof(m), null, 0.18, 0.12); toneAt(t + 0.09, 'square', mtof(m + 12), null, 0.16, 0.08); }); },
+  wub() { this.go(t => {
+    const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain(), l = ac.createOscillator(), lg = ac.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(55, t); f.type = 'lowpass'; f.Q.value = 6; f.frequency.value = 500;
+    l.frequency.value = 7; lg.gain.value = 400; l.connect(lg); lg.connect(f.frequency);
+    env(g, t, 0.3, 0.55, 0.02); o.connect(f); f.connect(g); g.connect(sfxBus); o.start(t); l.start(t); o.stop(t + 0.6); l.stop(t + 0.6);
+  }); },
+  poke() { this.go(t => { toneAt(t, 'square', 950, 300, 0.12, 0.2); toneAt(t, 'sine', 180, 70, 0.2, 0.5); }); },
+  flip() { this.go(t => { noiseAt(t, 0.5, 'bandpass', 1600, 400, 0.7, null, 0.8); toneAt(t, 'sine', 500, 150, 0.25, 0.3); }); },
+  sizzle() { this.go(t => { noiseAt(t, 0.5, 'highpass', 3500, null, 0.45); }); },
+  gulp() { this.go(t => { toneAt(t, 'sine', 280, 700, 0.15, 0.4); }); },
   life() { this.go(t => { [72, 76, 79, 84].forEach((m, i) => toneAt(t + i * 0.07, 'triangle', mtof(m), null, 0.25, 0.18)); }); },
 };
 
@@ -419,18 +468,22 @@ function prepLevel() {
   dark = level % 3 === 0;
   feat = features();
   shots = []; zombies = []; spiders = []; dolls = []; feet = []; smoke = []; paints = []; huskies = []; stains = [];
-  paintT = 2;
+  paintT = 2; orbs = []; kayaks = []; orbT = rand(5, 9); kayakT = 1.5;
+  if (!ball.elem && level > 1 && Math.random() < 0.25) {
+    const pick = ['fire', 'water', 'steam'][Math.floor(Math.random() * 3)];
+    later(0.9, () => giveElem(pick));
+  }
   buildScenery();
   resetBall();
   goalie.x = W / 2; goalie.cd = 1.4; goalie.sulk = 0;
   zombieT = 2.5; lightningT = rand(4, 7);
   giantT = 2.5; cannonT = 2; spiderT = 2.5; dollT = 1.5;
-  setTrack(dark ? 'creepy' : 'rock');
+  setTrack(dark ? 'creepy' : feat.synths ? 'synth' : 'rock');
   if (dark) sfx.boom();
   mode = 'between'; betweenT = dark ? 3.8 : 1.3 + 0.5 * introLine().length;
 }
 function newGame(d) {
-  lifePts = 0; ball.char = 'ball'; ball.charT = 0;
+  lifePts = 0; ball.char = 'ball'; ball.charT = 0; ball.elem = null; ball.elemT = 0;
   lives = (d && d.lives) || 3; score = (d && d.score) || 0; level = (d && d.level) || 1;
   timers = []; parts = []; pops = [];
   document.getElementById('title').hidden = true;
@@ -455,6 +508,7 @@ function showOver() {
 }
 function kickWith(vx, vy) {
   if (ball.char === 'man') { vx *= 0.85; vy *= 0.85; }
+  if (ball.elem === 'fire' || ball.elem === 'steam') { vx *= 1.2; vy *= 1.2; }
   ball.vx = vx; ball.vy = vy; ball.kicked = true; ball.held = false;
   bounced = false; cars.forEach(c => { c.hit = false; });
   sfx.kick(); burst(ball.x, ball.y + R * 0.6, 8, ['#cfe8d2', '#9cc9a4'], 120, 0, 3);
@@ -474,6 +528,7 @@ function missed() {
 }
 function scoreGoal() {
   addPoints(bounced ? 2 : 1); mode = 'goal';
+  if (ball.elem === 'steam') { addPoints(1); later(0.7, () => pop('FIRE & WATER +1', W / 2, H * 0.36 + 90 * S, '#ff9a5a', 22)); }
   if (bounced) { later(0.35, () => pop('BANK SHOT! +1', W / 2, H * 0.36 + 56 * S, '#ffffff', 26)); }
   ball.vx *= 0.35; ball.vy *= 0.35;
   sfx.goal(); buzz([40, 40, 80]);
@@ -549,7 +604,12 @@ function updateDay(dt) {
     if (tr.state === 'open') {
       tr.open = Math.min(1, tr.open + dt * 3);
       if (mode === 'play' && !ball.gone && ball.inv <= 0 && d < tr.r + R * 0.6) {
-        if (ball.kicked) chomp(tr); else { tr.state = 'snap'; tr.t = 0; }
+        if (ball.elem === 'fire' || ball.elem === 'steam') {
+          tr.state = 'closed'; tr.t = -1.6; tr.ate = false; tr.open = 0; sfx.sizzle();
+          pop('BURNED!', tr.x, tr.y - 40 * S, '#ff8a3d', 28);
+          burst(tr.x, tr.y, 16, ['#ff8a3d', '#ffd23f', '#555'], 200, -80, 4);
+        }
+        else if (ball.kicked) chomp(tr); else { tr.state = 'snap'; tr.t = 0; }
       }
     } else if (tr.state === 'snap') {
       tr.open = 1 - Math.pow(Math.min(1, tr.t / 0.4), 3);
@@ -576,7 +636,10 @@ function updateDay(dt) {
     const blobs = []; for (let i = 0; i < 6; i++) blobs.push({ dx: rand(-14, 14) * S, dy: rand(-9, 9) * S, r: rand(6, 13) * S });
     stains.push({ x: p.x, y: p.y, color: p.color, blobs });
     const hit = mode === 'play' && !ball.gone && !ball.kicked && ball.inv <= 0 && Math.hypot(ball.x - p.x, ball.y - p.y) < R + 18 * S;
-    if (hit) bite();
+    if (hit) {
+      if (ball.elem === 'water' || ball.elem === 'steam') { sfx.gulp(); pop('WASHED OFF!', ball.x, ball.y - 40 * S, '#4cc9ff', 24); }
+      else bite();
+    }
     if (huskies.length < 3) spawnHusky(p.x, p.y, hit ? 'flee' : 'chase');
   }
   paints = paints.filter(p => !p.dead);
@@ -591,20 +654,109 @@ function updateDay(dt) {
     if (h.state === 'flee' && (h.x < -40 || h.x > W + 40)) h.dead = true;
     if (h.state === 'chase' && mode === 'play' && !ball.gone && Math.hypot(ball.x - h.x, ball.y - h.y) < R + 14 * S) {
       if (ball.kicked) { h.state = 'flee'; sfx.yip(); pop('YIP!', h.x, h.y - 28 * S, '#ffffff', 24); }
-      else if (ball.inv <= 0) { h.state = 'flee'; bite(); }
+      else if (ball.inv <= 0) {
+        h.state = 'flee';
+        if (ball.elem === 'fire' || ball.elem === 'steam') { sfx.yip(); pop('HOT HOT HOT!', h.x, h.y - 28 * S, '#ff8a3d', 22); }
+        else bite();
+      }
     }
   }
   huskies = huskies.filter(h => !h.dead);
+
+  // kayaks paddling along the river
+  if (river && mode === 'play') {
+    kayakT -= dt;
+    if (kayakT <= 0 && kayaks.length < 2) {
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      kayaks.push({ x: dir > 0 ? -50 * S : W + 50 * S, y: river.y + rand(-8, 8) * S, dir, sp: (70 + level * 3) * S, paddle: 0, flip: 0 });
+      kayakT = rand(2.4, 3.8);
+    }
+  }
+  for (const k of kayaks) {
+    k.paddle += dt * 6;
+    if (k.flip > 0) { k.flip -= dt; k.x += k.dir * 20 * S * dt; if (k.flip <= 0) k.dead = true; continue; }
+    k.x += k.dir * k.sp * dt;
+    if ((k.dir > 0 && k.x > W + 60 * S) || (k.dir < 0 && k.x < -60 * S)) k.dead = true;
+    if (mode === 'play' && !ball.gone && Math.abs(ball.x - k.x) < 36 * S + R * 0.6 && Math.abs(ball.y - k.y) < 9 * S + R * 0.8) {
+      if (ball.kicked) {
+        k.flip = 1.4; addPoints(1); sfx.flip();
+        pop('FLIPPED! +1', k.x, k.y - 30 * S, '#ffd23f', 24);
+        burst(k.x, k.y, 16, ['#4cc9ff', '#ffffff', '#ffb020'], 220, 250, 4);
+      } else if (ball.inv <= 0) {
+        ball.inv = 1.6;
+        ball.x = clamp(ball.x + k.dir * 30 * S, R, W - R);
+        if (!ball.held) ball.vx += k.dir * 250 * S;
+        sfx.poke(); buzz(90);
+        pop('POKE!', ball.x, ball.y - 40 * S, '#ffb020', 30);
+        loseLife();
+      }
+    }
+  }
+  kayaks = kayaks.filter(k => !k.dead);
+
+  // synthesizers: bounce off them for points; they pulse sound rings that push you
+  for (const sy of synths) {
+    sy.flash = Math.max(0, sy.flash - dt * 3);
+    if (mode === 'play') {
+      sy.pulseT -= dt;
+      if (sy.pulseT <= 0) { sy.pulseT = rand(2.6, 3.6); sy.ring = 0; sy.pid++; sy.flash = 1; sy.key = Math.floor(Math.random() * 12); sfx.wub(); }
+    }
+    if (sy.ring >= 0) {
+      sy.ring += 170 * S * dt;
+      if (sy.ring > 150 * S) sy.ring = -1;
+      else if (mode === 'play' && !ball.gone && !ball.kicked && ball.ringPid !== sy.id + sy.pid) {
+        const dx = ball.x - sy.x, dy = ball.y - sy.y, d = Math.hypot(dx, dy) || 1;
+        if (Math.abs(d - sy.ring) < R + 4 * S) {
+          ball.ringPid = sy.id + sy.pid;
+          ball.x = clamp(ball.x + dx / d * 40 * S, R, W - R); ball.y = clamp(ball.y + dy / d * 40 * S, zoneTop + R, H - R - 6);
+          if (!ball.held) { ball.vx += dx / d * 200 * S; ball.vy += dy / d * 200 * S; }
+          pop('WUB!', ball.x, ball.y - 36 * S, '#ff7ae0', 22);
+        }
+      }
+    }
+  }
+
+  // power orbs: fire, water, or fire & water
+  if (mode === 'play') {
+    orbT -= dt;
+    if (orbT <= 0 && orbs.length < 1) {
+      const r = Math.random();
+      orbs.push({ x: rand(40 * S, W - 40 * S), y: rand(zoneTop + 30 * S, H - 40 * S), type: r < 0.4 ? 'fire' : r < 0.8 ? 'water' : 'steam', t: 0 });
+      orbT = rand(9, 14);
+    }
+  }
+  for (const o of orbs) {
+    o.t += dt;
+    if (o.t > 8) o.dead = true;
+    if (mode === 'play' && !ball.gone && Math.hypot(ball.x - o.x, ball.y - o.y) < R + 14 * S) { o.dead = true; giveElem(o.type); }
+  }
+  orbs = orbs.filter(o => !o.dead);
+
+  if (ball.elem && (mode === 'play' || mode === 'between')) {
+    ball.elemT -= dt;
+    if (!ball.gone && Math.random() < 0.6) {
+      const c = ball.elem === 'fire' ? ['#ff8a3d', '#ffd23f', '#ff4a1f'] : ball.elem === 'water' ? ['#4cc9ff', '#bfefff'] : ['#ff6a3d', '#4cc9ff', '#ffffff'];
+      parts.push({ x: ball.x + rand(-R, R) * 0.7, y: ball.y + rand(-R, R) * 0.5, vx: rand(-20, 20) * S, vy: (ball.elem === 'water' ? rand(10, 40) : rand(-70, -30)) * S, g: 0, life: rand(0.3, 0.6), max: 0.6, c: c[Math.floor(Math.random() * c.length)], s: rand(2.5, 5) * S });
+    }
+    if (ball.elemT <= 0) { ball.elem = null; sfx.morph(); pop('POWER OFF', W / 2, H * 0.58, '#c9d3cc', 24); }
+  }
+}
+function giveElem(type) {
+  ball.elem = type; ball.elemT = 12;
+  sfx.morph();
+  const label = type === 'fire' ? 'FIRE BALL!' : type === 'water' ? 'WATER BALL!' : 'FIRE & WATER BALL!';
+  pop(label, W / 2, H * 0.55, type === 'fire' ? '#ff8a3d' : type === 'water' ? '#4cc9ff' : '#ff9ad5', 30);
+  if (!ball.gone) burst(ball.x, ball.y, 22, type === 'fire' ? ['#ff8a3d', '#ffd23f'] : type === 'water' ? ['#4cc9ff', '#ffffff'] : ['#ff6a3d', '#4cc9ff'], 240, 0, 4);
 }
 function webbed() {
   if (mode !== 'play') return;
   mode = 'webbed'; webbedT = 0; ball.held = false; ptr.id = null;
   sfx.webbed(); buzz([60, 60, 200]); shake = reduceMotion ? 0 : 0.5;
   if (score > best) { best = score; try { localStorage.setItem('toilet-goalie-best', best); } catch (e) {} }
-  later(3, () => { score = 0; level = 1; lives = 3; lifePts = 0; ball.char = 'ball'; ball.charT = 0; prepLevel(); });
+  later(3, () => { score = 0; level = 1; lives = 3; lifePts = 0; ball.char = 'ball'; ball.charT = 0; ball.elem = null; ball.elemT = 0; prepLevel(); });
 }
 function collideCars() {
-  for (const c of cars) {
+  for (const c of cars.concat(synths)) {
     const px = clamp(ball.x, c.x - c.w / 2, c.x + c.w / 2), py = clamp(ball.y, c.y - c.h / 2, c.y + c.h / 2);
     let dx = ball.x - px, dy = ball.y - py, d = Math.hypot(dx, dy);
     if (d >= R) continue;
@@ -614,8 +766,9 @@ function collideCars() {
     const vn = ball.vx * nx + ball.vy * ny;
     if (vn < 0) { ball.vx -= 1.9 * vn * nx; ball.vy -= 1.9 * vn * ny; }
     if (ball.kicked && !ball.out && !c.hit && mode === 'play') {
-      c.hit = true; c.flash = 1; addPoints(1); bounced = true; sfx.honk();
-      pop('+1 BOUNCE!', c.x + (c.x < W / 2 ? 70 : -70) * S, c.y, '#ffd23f', 22);
+      c.hit = true; c.flash = 1; addPoints(1); bounced = true;
+      if (c.synth) { c.key = Math.floor(Math.random() * 12); sfx.bleep(); pop('+1 BLEEP!', c.x, c.y - 34 * S, '#ff7ae0', 22); }
+      else { sfx.honk(); pop('+1 BOUNCE!', c.x + (c.x < W / 2 ? 70 : -70) * S, c.y, '#ffd23f', 22); }
       burst(px, py, 10, ['#ffd23f', '#ffffff'], 180, 0, 3);
     }
   }
@@ -809,7 +962,7 @@ function update(dt) {
 
   // ball
   if (ball.held) {
-    const k = (ball.soaked > 0 || ball.daze > 0) ? 5 : ball.char === 'man' ? 9 : 20;
+    const k = (ball.soaked > 0 || ball.daze > 0) ? 5 : ball.inRiver ? 7 : ball.char === 'man' ? 9 : 20;
     const tx = clamp(ptr.x, R, W - R), ty = clamp(ptr.y, zoneTop + R, H - R - 6);
     const nx = ball.x + (tx - ball.x) * Math.min(1, k * dt), ny = ball.y + (ty - ball.y) * Math.min(1, k * dt);
     ball.spin += (nx - ball.x) / R; ball.x = nx; ball.y = ny; ball.vx = ball.vy = 0;
@@ -826,6 +979,8 @@ function update(dt) {
     if (mode !== 'goal') collideCars();
   }
   ball.daze = Math.max(0, ball.daze - dt);
+  ball.inRiver = !!river && !ball.kicked && !ball.gone && mode === 'play' && Math.abs(ball.y - river.y) < river.h / 2 && ball.elem !== 'water' && ball.elem !== 'steam';
+  if (ball.inRiver) ball.x = Math.min(W - R, ball.x + 45 * S * dt);
   if (ball.char === 'football' && ball.kicked && !ball.out && mode === 'play') {
     const sp = Math.hypot(ball.vx, ball.vy) || 1, wob = Math.sin(time * 9) * 340 * S;
     ball.vx += -ball.vy / sp * wob * dt; ball.vy += ball.vx / sp * wob * dt;
@@ -870,6 +1025,18 @@ function update(dt) {
       continue;
     }
     if (mode === 'play' && !ball.gone && !ball.kicked && !hidden && Math.hypot(s.x - ball.x, s.y - ball.y) < R + s.r * 0.8) {
+      const el = ball.elem;
+      if (s.type === 'water' && (el === 'water' || el === 'steam')) {
+        s.dead = true; sfx.gulp(); pop('GULP!', ball.x, ball.y - 40 * S, '#4cc9ff', 24);
+        burst(ball.x, ball.y, 8, ['#4cc9ff', '#ffffff'], 120, 0, 3);
+        continue;
+      }
+      if (s.type === 'poop' && (el === 'fire' || el === 'steam')) {
+        s.dead = true; sfx.sizzle(); pop('SIZZLE!', ball.x, ball.y - 40 * S, '#ff8a3d', 26);
+        burst(s.x, s.y, 12, ['#ff8a3d', '#ffd23f', '#555555'], 180, -80, 4);
+        continue;
+      }
+      if (s.type === 'water' && el === 'fire') { ball.elem = null; sfx.sizzle(); later(0.3, () => pop('FIRE OUT!', ball.x, ball.y - 70 * S, '#c9d3cc', 22)); }
       if (s.type === 'web') {
         s.dead = true;
         burst(ball.x, ball.y, 20, ['#ffffff', '#d36bff'], 200, 0, 3);
@@ -1037,6 +1204,19 @@ function drawBall() {
   ctx.save(); ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ell(R * 0.15, R * 0.9, R * 0.9, R * 0.3); ctx.fill();
   if (ball.inv > 0 && Math.floor(time * 12) % 2) ctx.globalAlpha = 0.45;
+  if (ball.elem) {
+    const glow = (col, ox) => {
+      const g = ctx.createRadialGradient(ox, 0, R * 0.5, ox, 0, R * 2);
+      g.addColorStop(0, `rgba(${col},0.75)`); g.addColorStop(1, `rgba(${col},0)`);
+      ctx.fillStyle = g; ell(ox, 0, R * 2, R * 2); ctx.fill();
+    };
+    const pulse = 1 + Math.sin(time * 10) * 0.08;
+    ctx.save(); ctx.scale(pulse, pulse);
+    if (ball.elem === 'fire') glow('255,120,30', 0);
+    else if (ball.elem === 'water') glow('60,180,255', 0);
+    else { glow('255,90,40', -R * 0.4); glow('60,170,255', R * 0.4); }
+    ctx.restore();
+  }
   if (ball.char !== 'ball') {
     if (ball.charT < 2 && Math.floor(time * 8) % 2) ctx.globalAlpha = 0.5;
     drawPerson(ball.char);
@@ -1108,7 +1288,10 @@ function drawHUD() {
     ctx.fillStyle = i < lifePts ? '#ffd23f' : 'rgba(255,255,255,0.18)';
     ell(14 + i * 9, hudH - 6, 2.6, 2.6); ctx.fill();
   }
-  if (ball.char !== 'ball') text((ball.char === 'man' ? 'MAN ' : 'FOOTBALL MAN ') + Math.ceil(Math.max(0, ball.charT)), W / 2, hudH - 7, 10, ball.char === 'man' ? '#7fd1ff' : '#ffb347', undefined, false);
+  const tags = [];
+  if (ball.char !== 'ball') tags.push((ball.char === 'man' ? 'MAN ' : 'FOOTBALL MAN ') + Math.ceil(Math.max(0, ball.charT)));
+  if (ball.elem) tags.push((ball.elem === 'fire' ? 'FIRE ' : ball.elem === 'water' ? 'WATER ' : 'FIRE+WATER ') + Math.ceil(Math.max(0, ball.elemT)));
+  if (tags.length) text(tags.join(' · '), W / 2, hudH - 7, 10, ball.elem === 'fire' ? '#ff8a3d' : ball.elem ? '#7fd1ff' : '#ffb347', undefined, false);
   text('LEVEL ' + level, W / 2, hudH / 2 + 1, 17, dark ? '#ff6b6b' : '#eef3f6', undefined, false);
   // goal counter (left of mute button)
   const gx = W - 92;
@@ -1122,17 +1305,21 @@ function render() {
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - 0.5) * shake * 14, (Math.random() - 0.5) * shake * 14);
   drawField();
+  drawRiver();
   drawNetBack();
   if (mode === 'goal' && !ball.gone) drawBall();
   drawNetFront();
   for (const s of stains) drawStain(s);
   for (const tr of traps) drawTrap(tr);
   for (const c of cars) drawCar(c);
+  for (const sy of synths) drawSynth(sy);
+  for (const k of kayaks) drawKayak(k);
   for (const c of cannons) drawCannon(c);
   for (const f of feet) drawFootShadow(f);
   drawToilet(goalie);
   if (mode !== 'goal' && !ball.gone) drawBall();
   for (const b of beds) drawBed(b);
+  for (const o of orbs) drawOrb(o);
   if (hidden && mode === 'play') text('HIDING', ball.x, ball.y - 34 * S, Math.round(13 * S), '#c9b6ff');
   for (const z of zombies) drawZombie(z, false);
   for (const d of dolls) drawDoll(d, false);
@@ -1483,6 +1670,92 @@ function drawHusky(h) {
     ctx.fillStyle = '#c0283c'; ell(17 * s, 1.5 * s, 3 * s, 1.5 * s); ctx.fill();
     ctx.fillStyle = '#ffffff'; ctx.fillRect(15 * s, 0, 1.2 * s, 1.5 * s); ctx.fillRect(18 * s, 0, 1.2 * s, 1.5 * s);
   }
+  ctx.restore();
+}
+function drawRiver() {
+  if (!river) return;
+  const top = river.y - river.h / 2;
+  ctx.fillStyle = '#cdb87e'; ctx.fillRect(0, top - 5 * S, W, river.h + 10 * S);
+  const g = ctx.createLinearGradient(0, top, 0, top + river.h);
+  g.addColorStop(0, '#256fa8'); g.addColorStop(0.5, '#3a9be0'); g.addColorStop(1, '#256fa8');
+  ctx.fillStyle = g; ctx.fillRect(0, top, W, river.h);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 2;
+  for (let i = 0; i < 10; i++) {
+    const yy = top + 9 * S + (i % 3) * river.h * 0.32;
+    const xx = ((time * 45 * S + i * 97) % (W + 60)) - 30;
+    ctx.beginPath(); ctx.moveTo(xx, yy); ctx.quadraticCurveTo(xx + 10 * S, yy - 3 * S, xx + 20 * S, yy); ctx.stroke();
+  }
+}
+function drawKayak(k) {
+  const L = 36 * S, Wd = 9 * S;
+  ctx.save(); ctx.translate(k.x, k.y); if (k.dir < 0) ctx.scale(-1, 1);
+  const hull = () => { ctx.beginPath(); ctx.moveTo(-L, 0); ctx.quadraticCurveTo(0, -Wd * 2, L, 0); ctx.quadraticCurveTo(0, Wd * 2, -L, 0); };
+  if (k.flip > 0) {
+    ctx.globalAlpha = Math.min(1, k.flip);
+    ctx.fillStyle = '#8a3b16'; hull(); ctx.fill();
+    ctx.strokeStyle = '#5a2208'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-L * 0.8, 0); ctx.lineTo(L * 0.8, 0); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    for (let i = 0; i < 3; i++) { ell(-L * 0.5 + i * L * 0.5, -Wd * 1.4 - ((time * 30 + i * 9) % 12) * S, 2 * S, 2 * S); ctx.fill(); }
+    ctx.restore(); return;
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.save(); ctx.translate(3, 4); hull(); ctx.fill(); ctx.restore();
+  ctx.fillStyle = '#ffb020'; ctx.strokeStyle = '#9a5a00'; ctx.lineWidth = 1.5; hull(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#ffffff'; ell(L * 0.92, 0, 3 * S, 2 * S); ctx.fill();
+  ctx.fillStyle = '#222'; ell(-2 * S, 0, 10 * S, 5.5 * S); ctx.fill();
+  ctx.fillStyle = '#2f6fd6'; ell(-3 * S, 0, 6 * S, 5 * S); ctx.fill();
+  ctx.save(); ctx.translate(-1 * S, 0); ctx.rotate(Math.sin(k.paddle) * 0.7);
+  ctx.strokeStyle = '#7a4a24'; ctx.lineWidth = 2.5 * S; ctx.beginPath(); ctx.moveTo(0, -20 * S); ctx.lineTo(0, 20 * S); ctx.stroke();
+  ctx.fillStyle = '#d83b2e'; ell(0, -21 * S, 3 * S, 6 * S); ctx.fill(); ell(0, 21 * S, 3 * S, 6 * S); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = '#e9b98f'; ell(1 * S, 0, 3.8 * S, 3.8 * S); ctx.fill();
+  ctx.fillStyle = '#d83b2e'; ctx.beginPath(); ctx.arc(1 * S, 0, 3.8 * S, Math.PI * 0.6, Math.PI * 1.4); ctx.fill();
+  ctx.restore();
+}
+function drawSynth(sy) {
+  const { x, y, w, h } = sy;
+  if (sy.ring >= 0) {
+    const a = 1 - sy.ring / (150 * S);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = `rgba(255,80,220,${a})`; ctx.beginPath(); ctx.arc(x, y, sy.ring, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = `rgba(80,230,255,${a * 0.6})`; ctx.beginPath(); ctx.arc(x, y, Math.max(0, sy.ring - 10 * S), 0, TAU); ctx.stroke();
+  }
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(0,0,0,0.3)'; rr(-w / 2 + 3, -h / 2 + 4, w, h, 4 * S); ctx.fill();
+  ctx.fillStyle = '#8a5a34'; rr(-w / 2 - 6 * S, -h / 2, 8 * S, h, 3 * S); ctx.fill(); rr(w / 2 - 2 * S, -h / 2, 8 * S, h, 3 * S); ctx.fill();
+  ctx.fillStyle = '#24262e'; rr(-w / 2, -h / 2, w, h, 3 * S); ctx.fill();
+  for (let i = 0; i < 6; i++) {
+    const kx = -w / 2 + 8 * S + i * 11 * S, ky = -h / 2 + 6 * S;
+    ctx.fillStyle = '#d9d9d9'; ell(kx, ky, 3 * S, 3 * S); ctx.fill();
+    ctx.strokeStyle = '#24262e'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(kx, ky); ctx.lineTo(kx + Math.cos(time + i) * 2.5 * S, ky + Math.sin(time + i) * 2.5 * S); ctx.stroke();
+  }
+  ['#ff4fa3', '#4cc9ff', '#ffd23f'].forEach((c, i) => {
+    ctx.fillStyle = c; ctx.globalAlpha = 0.4 + 0.6 * (sy.flash > 0 || Math.floor(time * 4 + i) % 3 === 0 ? 1 : 0);
+    ell(w / 2 - 8 * S - i * 7 * S, -h / 2 + 6 * S, 2 * S, 2 * S); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  const kTop = -h / 2 + 12 * S, kH = h - 14 * S, kw = (w - 6 * S) / 12;
+  for (let i = 0; i < 12; i++) {
+    ctx.fillStyle = sy.flash > 0 && i === sy.key ? '#ff7ae0' : '#f4f4f4';
+    ctx.fillRect(-w / 2 + 3 * S + i * kw + 0.5, kTop, kw - 1, kH);
+  }
+  ctx.fillStyle = '#111';
+  for (let i = 0; i < 11; i++) { if (i % 7 === 2 || i % 7 === 6) continue; ctx.fillRect(-w / 2 + 3 * S + (i + 1) * kw - kw * 0.3, kTop, kw * 0.6, kH * 0.6); }
+  ctx.restore();
+}
+function drawOrb(o) {
+  const bob = Math.sin(o.t * 4) * 3 * S, r = 11 * S;
+  if (o.t > 6 && Math.floor(o.t * 10) % 2) return;
+  ctx.save(); ctx.translate(o.x, o.y + bob);
+  const col = o.type === 'fire' ? '255,120,30' : o.type === 'water' ? '60,180,255' : '220,120,255';
+  const g = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, r * 2.4);
+  g.addColorStop(0, `rgba(${col},0.7)`); g.addColorStop(1, `rgba(${col},0)`);
+  ctx.fillStyle = g; ell(0, 0, r * 2.4, r * 2.4); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ell(0, 0, r, r); ctx.fill();
+  const flame = (cx, sc) => { ctx.fillStyle = '#ff6a1f'; ctx.beginPath(); ctx.moveTo(cx, -r * 0.75 * sc); ctx.quadraticCurveTo(cx + r * 0.6 * sc, -r * 0.1, cx + r * 0.4 * sc, r * 0.35 * sc); ctx.quadraticCurveTo(cx, r * 0.7 * sc, cx - r * 0.4 * sc, r * 0.35 * sc); ctx.quadraticCurveTo(cx - r * 0.6 * sc, -r * 0.1, cx, -r * 0.75 * sc); ctx.fill(); ctx.fillStyle = '#ffd23f'; ell(cx, r * 0.2 * sc, r * 0.18 * sc, r * 0.25 * sc); ctx.fill(); };
+  const drop = (cx, sc) => { ctx.fillStyle = '#2f9be8'; ctx.beginPath(); ctx.moveTo(cx, -r * 0.75 * sc); ctx.quadraticCurveTo(cx + r * 0.55 * sc, 0, cx + r * 0.42 * sc, r * 0.25 * sc); ctx.arc(cx, r * 0.25 * sc, r * 0.42 * sc, 0, Math.PI); ctx.quadraticCurveTo(cx - r * 0.55 * sc, 0, cx, -r * 0.75 * sc); ctx.fill(); };
+  if (o.type === 'fire') flame(0, 1);
+  else if (o.type === 'water') drop(0, 1);
+  else { flame(-r * 0.32, 0.7); drop(r * 0.32, 0.7); }
   ctx.restore();
 }
 function wrapText(str, x, y, maxW, lh) {

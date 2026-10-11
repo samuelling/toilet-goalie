@@ -22,7 +22,14 @@ Built for phones. Open `index.html` in a browser, or turn on GitHub Pages (Setti
 | 4 | Football cannons + paint drop huskies |
 | 5 | Giants + fly traps + paint huskies |
 | 6 | Lights out: spiders. A web sends you back to zero points! |
-| 7+ | Daytime: everything. Every 3rd level: lights out with dolls, spiders and zombies |
+| 7 | Kayaks on the river + synthesizers (synth music!) |
+| 8 | Kayaks + synthesizers + cannons + paint huskies |
+| 9 | Lights out: dolls, spiders and zombies |
+| 10+ | Kayaks plus a mix of everything; every 3rd level is lights out |
+
+Grab a glowing orb to become a **Fire** ball (burns poop and fly traps, faster shots), a **Water** ball (drinks water shots, washes off paint, swims the river), or a **Fire & Water** ball (all of that, plus a bonus point per goal). Sometimes a level starts you with one.
+
+Kayaks poke you (lose a roll), but kick the ball into one to flip it for +1. Synthesizers send out WUB rings that push you, and bouncing a shot off one is +1.
 
 A husky bite turns you into **Man** (slower) or **Football Man** (wobbly shots) for 10 seconds.
 
