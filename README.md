@@ -35,6 +35,8 @@ Kayaks poke you (lose a roll), but kick the ball into one to flip it for +1. Syn
 
 Huskies bring fire: flames burst up where they land and trail behind them. Touching fire costs a roll (water balls put it out). Poop that misses you lands as a poop puddle; step in one and you get stuck, then turn into a **tiny pee drop** for 10 seconds.
 
+From level 2, **cages** sometimes drop from the sky (watch for the flashing shadow). If one traps you, tap like crazy to break out, and you become a **FART MACHINE** for 10 seconds: fart-powered kicks fly faster, stinky gas clouds scare off huskies, dolls and zombies, and a fart-shot goal is worth +1.
+
 A husky bite turns you into **Man** (slower) or **Football Man** (wobbly shots) for 10 seconds. Whenever you're a guy, the field turns into a **jungle** with vines, bongo drums and poisonous mushrooms: touching one costs a roll and makes you woozy, but kicking the ball into one squishes it for +1.
 
 Everything (graphics, music, sound effects) is drawn and synthesized in code. No image or audio files.
