@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<style>/* no pinch / double-tap zoom from little fingers */html{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-behavior:none}body{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;overscroll-behavior:none}</style>
 <meta name="theme-color" content="#0b1710">
 <title>Toilet Goalie</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2901,6 +2902,11 @@ const hot = window.claude && window.claude.hot;
 if (hot && hot.snapshot) { try { hot.snapshot(() => ({ lives, score, level, muted })); } catch (e) {} }
 if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();
+</script>
+<script>
+// no pinch / double-tap zoom (iPad Safari ignores user-scalable=no)
+['gesturestart','gesturechange','gestureend','dblclick'].forEach(function(t){document.addEventListener(t,function(e){if(e.cancelable)e.preventDefault();},{passive:false});});
+document.addEventListener('touchmove',function(e){if(e.touches.length>1&&e.cancelable)e.preventDefault();},{passive:false});
 </script>
 </body>
 </html>
